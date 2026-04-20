@@ -192,3 +192,175 @@ class TravelItem(db.Model):
     actual_amount = db.Column(db.Float, nullable=True)
     is_booked = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text, nullable=True)
+
+
+# ─────────────────────────────────────────────
+# 收支記錄
+# ─────────────────────────────────────────────
+class Transaction(db.Model):
+    __tablename__ = 'transactions'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False, default=date.today)
+    trans_type = db.Column(db.String(20), nullable=False)  # income / expense
+    category = db.Column(db.String(100), nullable=False)
+    subcategory = db.Column(db.String(100), nullable=True)
+    amount = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(200), nullable=True)
+    tags = db.Column(db.String(200), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    budget_category_id = db.Column(db.Integer, db.ForeignKey('budget_categories.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='transactions')
+
+
+# ─────────────────────────────────────────────
+# 保險管理
+# ─────────────────────────────────────────────
+class Insurance(db.Model):
+    __tablename__ = 'insurances'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    insurance_type = db.Column(db.String(50), nullable=False)  # 壽險/醫療/車險/房屋/意外/其他
+    insurer = db.Column(db.String(100), nullable=True)         # 保險公司
+    policy_number = db.Column(db.String(100), nullable=True)
+    insured_name = db.Column(db.String(100), nullable=False)
+    beneficiary = db.Column(db.String(100), nullable=True)
+    premium_amount = db.Column(db.Float, default=0)
+    payment_frequency = db.Column(db.String(20), default='年繳')  # 月繳/季繳/半年繳/年繳
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
+    coverage_amount = db.Column(db.Float, nullable=True)
+    related_vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=True)
+    related_property_id = db.Column(db.Integer, db.ForeignKey('properties.id'), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    related_vehicle = db.relationship('Vehicle', backref='insurances')
+    related_property = db.relationship('Property', backref='insurances')
+
+    def annual_premium(self):
+        freq = {'月繳': 12, '季繳': 4, '半年繳': 2, '年繳': 1}
+        return self.premium_amount * freq.get(self.payment_frequency, 1)
+
+    def days_until_expiry(self):
+        if not self.end_date:
+            return None
+        return (self.end_date - date.today()).days
+
+
+# ─────────────────────────────────────────────
+# 重要文件
+# ─────────────────────────────────────────────
+class Document(db.Model):
+    __tablename__ = 'documents'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    doc_type = db.Column(db.String(50), nullable=False)  # 護照/房契/保單/駕照/身分證/合約/其他
+    owner_name = db.Column(db.String(100), nullable=False)
+    issue_date = db.Column(db.Date, nullable=True)
+    expiry_date = db.Column(db.Date, nullable=True)
+    storage_location = db.Column(db.String(200), nullable=True)  # 實體存放位置
+    notes = db.Column(db.Text, nullable=True)
+    is_important = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def days_until_expiry(self):
+        if not self.expiry_date:
+            return None
+        return (self.expiry_date - date.today()).days
+
+    def is_expiring_soon(self, days=90):
+        d = self.days_until_expiry()
+        return d is not None and 0 <= d <= days
+
+
+# ─────────────────────────────────────────────
+# 人生目標
+# ─────────────────────────────────────────────
+class Goal(db.Model):
+    __tablename__ = 'goals'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(50), nullable=False)  # 財務/健康/學習/家庭/旅遊/事業/其他
+    timeframe = db.Column(db.String(20), default='中期')  # 短期(1年內)/中期(1-5年)/長期(5年以上)
+    target_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), default='進行中')  # 進行中/已完成/暫停/放棄
+    progress = db.Column(db.Integer, default=0)  # 0-100
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    milestones = db.relationship('GoalMilestone', backref='goal', cascade='all, delete-orphan')
+    user = db.relationship('User', backref='goals')
+
+class GoalMilestone(db.Model):
+    __tablename__ = 'goal_milestones'
+    id = db.Column(db.Integer, primary_key=True)
+    goal_id = db.Column(db.Integer, db.ForeignKey('goals.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    due_date = db.Column(db.Date, nullable=True)
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_date = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+
+# ─────────────────────────────────────────────
+# 投資管理
+# ─────────────────────────────────────────────
+class Investment(db.Model):
+    __tablename__ = 'investments'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    investment_type = db.Column(db.String(50), nullable=False)  # 股票/ETF/基金/定存/儲蓄險/債券/其他
+    institution = db.Column(db.String(100), nullable=True)
+    owner_name = db.Column(db.String(100), nullable=False)
+    amount_invested = db.Column(db.Float, default=0)
+    current_value = db.Column(db.Float, default=0)
+    currency = db.Column(db.String(10), default='TWD')
+    purchase_date = db.Column(db.Date, nullable=True)
+    maturity_date = db.Column(db.Date, nullable=True)
+    annual_return = db.Column(db.Float, nullable=True)  # 年化報酬率 %
+    notes = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def gain_loss(self):
+        return self.current_value - self.amount_invested
+
+    def gain_loss_pct(self):
+        if self.amount_invested == 0:
+            return 0
+        return round((self.gain_loss() / self.amount_invested) * 100, 2)
+
+
+# ─────────────────────────────────────────────
+# 健康記錄
+# ─────────────────────────────────────────────
+class HealthRecord(db.Model):
+    __tablename__ = 'health_records'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    record_date = db.Column(db.Date, nullable=False, default=date.today)
+    weight = db.Column(db.Float, nullable=True)           # kg
+    blood_pressure_sys = db.Column(db.Integer, nullable=True)  # 收縮壓
+    blood_pressure_dia = db.Column(db.Integer, nullable=True)  # 舒張壓
+    heart_rate = db.Column(db.Integer, nullable=True)
+    blood_sugar = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='health_records')
+
+
+# ─────────────────────────────────────────────
+# 重要聯絡人
+# ─────────────────────────────────────────────
+class Contact(db.Model):
+    __tablename__ = 'contacts'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # 醫療/法律/財務/保險/緊急/家人/朋友/其他
+    relationship = db.Column(db.String(100), nullable=True)  # 關係/職稱
+    phone = db.Column(db.String(50), nullable=True)
+    email = db.Column(db.String(100), nullable=True)
+    address = db.Column(db.String(200), nullable=True)
+    institution = db.Column(db.String(100), nullable=True)  # 機構/公司
+    is_important = db.Column(db.Boolean, default=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

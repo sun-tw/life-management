@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block page_title %}重要聯絡人{% endblock %}
+
+{% block content %}
+{% set cat_icons = {
+  '醫療': '🏥', '法律': '⚖️', '財務': '💰',
+  '保險': '🛡️', '緊急': '🆘', '家人': '👨‍👩‍👧',
+  '朋友': '👥', '其他': '📋'
+} %}
+
+<div class="px-8 py-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">重要聯絡人</h2>
+      <p class="text-slate-500 text-sm mt-1">管理醫療、法律、財務等重要聯絡資訊</p>
+    </div>
+    <a href="{{ url_for('contacts.add') }}"
+       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium shadow-sm hover:opacity-90 transition"
+       style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+      <span>+</span> 新增聯絡人
+    </a>
+  </div>
+
+  <!-- 重要聯絡人置頂 -->
+  {% if important %}
+  <div class="mb-8">
+    <h3 class="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-2">
+      <span class="text-base">⭐</span> 重要聯絡人
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {% for c in important %}
+      <div class="card p-5 border-l-4 border-amber-400">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-lg">{{ cat_icons.get(c.category, '📋') }}</span>
+              <h4 class="font-semibold text-slate-800">{{ c.name }}</h4>
+              <span class="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">{{ c.category }}</span>
+            </div>
+            {% if c.relationship or c.institution %}
+            <p class="text-xs text-slate-500 ml-7">
+              {{ c.relationship }}{% if c.relationship and c.institution %} · {% endif %}{{ c.institution }}
+            </p>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-1.5">
+            <a href="{{ url_for('contacts.edit', id=c.id) }}"
+               class="text-xs text-slate-400 hover:text-indigo-600 transition">✏️</a>
+            <form method="POST" action="{{ url_for('contacts.delete', id=c.id) }}"
+                  onsubmit="return confirm('確定刪除此聯絡人？')">
+              <button class="text-xs text-slate-400 hover:text-red-500 transition">🗑️</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          {% if c.phone %}
+          <a href="tel:{{ c.phone }}" class="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800">
+            <span class="text-base">📞</span> {{ c.phone }}
+          </a>
+          {% endif %}
+          {% if c.email %}
+          <a href="mailto:{{ c.email }}" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700">
+            <span class="text-base">✉️</span> {{ c.email }}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 依類別分組 -->
+  {% if grouped %}
+  <div class="space-y-6">
+    {% for cat, items in grouped.items() %}
+    <div class="card p-6">
+      <h3 class="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+        <span class="text-xl">{{ cat_icons.get(cat, '📋') }}</span>
+        {{ cat }}
+        <span class="text-xs font-normal text-slate-400 ml-1">（{{ items|length }}）</span>
+      </h3>
+      <div class="divide-y divide-slate-100">
+        {% for c in items %}
+        <div class="py-3 flex items-center gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-slate-800 text-sm">{{ c.name }}</span>
+              {% if c.relationship %}
+              <span class="text-xs text-slate-400">{{ c.relationship }}</span>
+              {% endif %}
+              {% if c.institution %}
+              <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{{ c.institution }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 flex-shrink-0">
+            {% if c.phone %}
+            <a href="tel:{{ c.phone }}"
+               class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">
+              <span class="text-base">📞</span>
+              <span>{{ c.phone }}</span>
+            </a>
+            {% endif %}
+            {% if c.email %}
+            <a href="mailto:{{ c.email }}"
+               class="text-sm text-slate-400 hover:text-slate-600 hidden md:block truncate max-w-xs">
+              {{ c.email }}
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <a href="{{ url_for('contacts.edit', id=c.id) }}"
+               class="text-xs text-slate-400 hover:text-indigo-600 transition">✏️</a>
+            <form method="POST" action="{{ url_for('contacts.delete', id=c.id) }}"
+                  onsubmit="return confirm('確定刪除此聯絡人？')">
+              <button class="text-xs text-slate-400 hover:text-red-500 transition">🗑️</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not important and not grouped %}
+  <div class="card p-12 text-center text-slate-400">
+    <div class="text-5xl mb-4">📇</div>
+    <p class="text-base">尚無聯絡人，點擊右上角新增！</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

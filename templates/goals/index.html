@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block page_title %}人生目標{% endblock %}
+
+{% block content %}
+{% set cat_icons = {
+  '財務': '💰', '健康': '💪', '學習': '📚',
+  '家庭': '👨‍👩‍👧', '旅遊': '✈️', '事業': '💼', '其他': '⭐'
+} %}
+{% set cat_colors = {
+  '財務': 'bg-yellow-100 text-yellow-800',
+  '健康': 'bg-green-100 text-green-800',
+  '學習': 'bg-blue-100 text-blue-800',
+  '家庭': 'bg-pink-100 text-pink-800',
+  '旅遊': 'bg-sky-100 text-sky-800',
+  '事業': 'bg-purple-100 text-purple-800',
+  '其他': 'bg-slate-100 text-slate-700'
+} %}
+
+<div class="px-8 py-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">人生目標</h2>
+      <p class="text-slate-500 text-sm mt-1">追蹤您的重要人生目標與里程碑</p>
+    </div>
+    <a href="{{ url_for('goals.add') }}"
+       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium shadow-sm hover:opacity-90 transition"
+       style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+      <span class="text-base">+</span> 新增目標
+    </a>
+  </div>
+
+  <!-- 進行中 -->
+  <div class="mb-8">
+    <h3 class="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>
+      進行中（{{ active_goals|length }}）
+    </h3>
+    {% if active_goals %}
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {% for goal in active_goals %}
+      <div class="card p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+              {{ cat_colors.get(goal.category, 'bg-slate-100 text-slate-700') }}">
+              {{ cat_icons.get(goal.category, '⭐') }} {{ goal.category }}
+            </span>
+            <span class="text-xs text-slate-400 px-2 py-1 bg-slate-100 rounded-full">
+              {{ goal.timeframe }}
+            </span>
+          </div>
+          {% if goal.status == '暫停' %}
+          <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">暫停</span>
+          {% endif %}
+        </div>
+
+        <h4 class="font-semibold text-slate-800 text-base mb-3 leading-snug">{{ goal.title }}</h4>
+
+        <!-- 進度條 -->
+        <div class="mb-3">
+          <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+            <span>進度</span>
+            <span class="font-semibold text-indigo-600">{{ goal.progress }}%</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all"
+                 style="width: {{ goal.progress }}%; background: linear-gradient(90deg, #4338ca, #6366f1);"></div>
+          </div>
+        </div>
+
+        <!-- 里程碑 & 日期 -->
+        <div class="flex items-center justify-between text-xs text-slate-500">
+          <span>
+            ✅ {{ goal.milestones|selectattr('is_completed')|list|length }}
+            / {{ goal.milestones|length }} 里程碑
+          </span>
+          {% if goal.target_date %}
+          <span>🎯 {{ goal.target_date|date_fmt }}</span>
+          {% endif %}
+        </div>
+
+        <a href="{{ url_for('goals.detail', id=goal.id) }}"
+           class="mt-4 block w-full text-center py-2 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition">
+          查看詳情 →
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card p-10 text-center text-slate-400">
+      <div class="text-4xl mb-3">🎯</div>
+      <p>尚無進行中的目標，立即新增第一個！</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 已完成 / 放棄 -->
+  {% if completed_goals %}
+  <div>
+    <h3 class="text-lg font-semibold text-slate-500 mb-4 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-slate-400 inline-block"></span>
+      已完成 / 放棄（{{ completed_goals|length }}）
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {% for goal in completed_goals %}
+      <div class="card p-5 opacity-75 hover:opacity-100 transition-opacity">
+        <div class="flex items-start justify-between mb-2">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+            {{ cat_colors.get(goal.category, 'bg-slate-100 text-slate-700') }}">
+            {{ cat_icons.get(goal.category, '⭐') }} {{ goal.category }}
+          </span>
+          <span class="text-xs px-2 py-1 rounded-full
+            {% if goal.status == '已完成' %}bg-green-100 text-green-700
+            {% else %}bg-red-100 text-red-600{% endif %}">
+            {{ goal.status }}
+          </span>
+        </div>
+        <h4 class="font-medium text-slate-600 text-sm mb-2">{{ goal.title }}</h4>
+        <div class="w-full bg-slate-100 rounded-full h-1.5">
+          <div class="h-1.5 rounded-full bg-slate-400"
+               style="width: {{ goal.progress }}%;"></div>
+        </div>
+        <a href="{{ url_for('goals.detail', id=goal.id) }}"
+           class="mt-3 block w-full text-center py-1.5 rounded-lg text-xs text-slate-500 bg-slate-50 hover:bg-slate-100 transition">
+          查看詳情
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

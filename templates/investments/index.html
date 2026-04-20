@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block page_title %}投資管理{% endblock %}
+
+{% block content %}
+<div class="px-8 py-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">投資管理</h2>
+      <p class="text-slate-500 text-sm mt-1">追蹤所有投資項目的損益狀況</p>
+    </div>
+    <a href="{{ url_for('investments.add') }}"
+       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium shadow-sm hover:opacity-90 transition"
+       style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+      <span>+</span> 新增投資
+    </a>
+  </div>
+
+  <!-- 統計卡 -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card p-5">
+      <p class="text-xs font-medium text-slate-500 mb-1">總投入金額</p>
+      <p class="text-2xl font-bold text-slate-800">{{ total_invested|money }}</p>
+      <p class="text-xs text-slate-400 mt-1">TWD</p>
+    </div>
+    <div class="stat-card p-5">
+      <p class="text-xs font-medium text-slate-500 mb-1">總現值</p>
+      <p class="text-2xl font-bold text-slate-800">{{ total_current|money }}</p>
+      <p class="text-xs text-slate-400 mt-1">TWD</p>
+    </div>
+    <div class="stat-card p-5">
+      <p class="text-xs font-medium text-slate-500 mb-1">總損益</p>
+      <p class="text-2xl font-bold {{ 'text-green-600' if total_gain >= 0 else 'text-red-500' }}">
+        {{ '+' if total_gain >= 0 else '' }}{{ total_gain|money }}
+      </p>
+      <p class="text-xs {{ 'text-green-500' if total_gain >= 0 else 'text-red-400' }} mt-1">
+        {{ '+' if total_gain_pct >= 0 else '' }}{{ total_gain_pct }}%
+      </p>
+    </div>
+    <div class="stat-card p-5">
+      <p class="text-xs font-medium text-slate-500 mb-1">投資筆數</p>
+      <p class="text-2xl font-bold text-slate-800">{{ investments|length }}</p>
+      <p class="text-xs text-slate-400 mt-1">筆</p>
+    </div>
+  </div>
+
+  <!-- 依類型分組 -->
+  {% if grouped %}
+  <div class="space-y-6">
+    {% for inv_type, items in grouped.items() %}
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-slate-700">{{ inv_type }}</h3>
+        <span class="text-xs text-slate-400">{{ items|length }} 筆</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-100">
+              <th class="text-left text-xs font-medium text-slate-500 pb-3 pr-4">名稱</th>
+              <th class="text-left text-xs font-medium text-slate-500 pb-3 pr-4">機構</th>
+              <th class="text-left text-xs font-medium text-slate-500 pb-3 pr-4">持有人</th>
+              <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">投入金額</th>
+              <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">現值</th>
+              <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">損益</th>
+              <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">損益%</th>
+              <th class="text-center text-xs font-medium text-slate-500 pb-3 pr-4">到期日</th>
+              <th class="text-center text-xs font-medium text-slate-500 pb-3">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            {% for inv in items %}
+            {% set gl = inv.gain_loss() %}
+            {% set glp = inv.gain_loss_pct() %}
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="py-3 pr-4 font-medium text-slate-800">{{ inv.name }}</td>
+              <td class="py-3 pr-4 text-slate-500">{{ inv.institution or '—' }}</td>
+              <td class="py-3 pr-4 text-slate-500">{{ inv.owner_name }}</td>
+              <td class="py-3 pr-4 text-right text-slate-700">{{ inv.amount_invested|money }}</td>
+              <td class="py-3 pr-4 text-right text-slate-700">{{ inv.current_value|money }}</td>
+              <td class="py-3 pr-4 text-right font-medium {{ 'text-green-600' if gl >= 0 else 'text-red-500' }}">
+                {{ '+' if gl >= 0 else '' }}{{ gl|money }}
+              </td>
+              <td class="py-3 pr-4 text-right">
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                  {{ 'bg-green-100 text-green-700' if glp >= 0 else 'bg-red-100 text-red-600' }}">
+                  {{ '+' if glp >= 0 else '' }}{{ glp }}%
+                </span>
+              </td>
+              <td class="py-3 pr-4 text-center text-slate-400 text-xs">
+                {{ inv.maturity_date|date_fmt if inv.maturity_date else '—' }}
+              </td>
+              <td class="py-3 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <a href="{{ url_for('investments.edit', id=inv.id) }}"
+                     class="text-xs text-indigo-500 hover:text-indigo-700">編輯</a>
+                  <form method="POST" action="{{ url_for('investments.delete', id=inv.id) }}"
+                        onsubmit="return confirm('確定要刪除？')">
+                    <button class="text-xs text-red-400 hover:text-red-600">刪除</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if items|length > 1 %}
+          <tfoot>
+            <tr class="border-t-2 border-slate-200">
+              <td colspan="3" class="pt-3 text-xs font-semibold text-slate-500">小計</td>
+              <td class="pt-3 pr-4 text-right text-sm font-semibold text-slate-700">
+                {{ items|sum(attribute='amount_invested')|money }}
+              </td>
+              <td class="pt-3 pr-4 text-right text-sm font-semibold text-slate-700">
+                {{ items|sum(attribute='current_value')|money }}
+              </td>
+              <td colspan="4"></td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card p-12 text-center text-slate-400">
+    <div class="text-5xl mb-4">📈</div>
+    <p class="text-base">尚無投資記錄，點擊右上角新增第一筆！</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

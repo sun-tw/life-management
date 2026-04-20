@@ -10,6 +10,15 @@ from routes.vehicles import vehicles_bp
 from routes.properties import properties_bp
 from routes.travel import travel_bp
 from routes.settings import settings_bp
+from routes.transactions import transactions_bp
+from routes.insurance import insurance_bp
+from routes.documents import documents_bp
+from routes.goals import goals_bp
+from routes.investments import investments_bp
+from routes.health import health_bp
+from routes.contacts import contacts_bp
+from routes.networth import networth_bp
+from routes.timeline import timeline_bp
 
 def create_app():
     app = Flask(__name__)
@@ -28,16 +37,13 @@ def create_app():
         return User.query.get(int(user_id))
 
     # Register blueprints
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(loans_bp)
-    app.register_blueprint(budget_bp)
-    app.register_blueprint(vehicles_bp)
-    app.register_blueprint(properties_bp)
-    app.register_blueprint(travel_bp)
-    app.register_blueprint(settings_bp)
+    for bp in [auth_bp, dashboard_bp, loans_bp, budget_bp, vehicles_bp,
+               properties_bp, travel_bp, settings_bp, transactions_bp,
+               insurance_bp, documents_bp, goals_bp, investments_bp,
+               health_bp, contacts_bp, networth_bp, timeline_bp]:
+        app.register_blueprint(bp)
 
-    # Context processor — inject `now` and `today` into all templates
+    # Context processor
     from datetime import datetime, date as date_type
     @app.context_processor
     def inject_globals():

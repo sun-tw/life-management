@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% block page_title %}健康記錄{% endblock %}
+
+{% block content %}
+<div class="px-8 py-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">健康記錄</h2>
+      <p class="text-slate-500 text-sm mt-1">追蹤體重、血壓、心率等健康指標</p>
+    </div>
+  </div>
+
+  <!-- 用戶切換 Tab -->
+  <div class="flex gap-2 mb-6">
+    {% for u in all_users %}
+    <a href="{{ url_for('health.index', user_id=u.id) }}"
+       class="px-5 py-2.5 rounded-xl text-sm font-medium transition
+         {% if view_user.id == u.id %}
+           text-white shadow-sm
+         {% else %}
+           bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600
+         {% endif %}"
+       {% if view_user.id == u.id %}
+       style="background: linear-gradient(135deg, #4338ca, #6366f1);"
+       {% endif %}>
+      {{ u.display_name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <!-- 左側：最新記錄 + 歷史 -->
+    <div class="xl:col-span-2 space-y-6">
+
+      <!-- 最新記錄大卡片 -->
+      {% if latest %}
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-base font-semibold text-slate-700">最新記錄</h3>
+          <span class="text-sm text-slate-400">{{ latest.record_date|date_fmt }}</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- 體重 -->
+          <div class="bg-blue-50 rounded-xl p-4 text-center">
+            <div class="text-3xl mb-1">⚖️</div>
+            <div class="text-2xl font-bold text-blue-700">
+              {{ latest.weight if latest.weight else '—' }}
+            </div>
+            <div class="text-xs text-blue-500 mt-0.5">公斤</div>
+            <div class="text-xs text-blue-400 mt-1">體重</div>
+          </div>
+          <!-- 血壓 -->
+          <div class="bg-red-50 rounded-xl p-4 text-center">
+            <div class="text-3xl mb-1">❤️</div>
+            <div class="text-2xl font-bold text-red-600">
+              {% if latest.blood_pressure_sys and latest.blood_pressure_dia %}
+              {{ latest.blood_pressure_sys }}/{{ latest.blood_pressure_dia }}
+              {% else %}—{% endif %}
+            </div>
+            <div class="text-xs text-red-400 mt-0.5">mmHg</div>
+            <div class="text-xs text-red-400 mt-1">血壓</div>
+          </div>
+          <!-- 心率 -->
+          <div class="bg-orange-50 rounded-xl p-4 text-center">
+            <div class="text-3xl mb-1">💓</div>
+            <div class="text-2xl font-bold text-orange-600">
+              {{ latest.heart_rate if latest.heart_rate else '—' }}
+            </div>
+            <div class="text-xs text-orange-400 mt-0.5">bpm</div>
+            <div class="text-xs text-orange-400 mt-1">心率</div>
+          </div>
+          <!-- 血糖 -->
+          <div class="bg-green-50 rounded-xl p-4 text-center">
+            <div class="text-3xl mb-1">🩸</div>
+            <div class="text-2xl font-bold text-green-700">
+              {{ latest.blood_sugar if latest.blood_sugar else '—' }}
+            </div>
+            <div class="text-xs text-green-500 mt-0.5">mmol/L</div>
+            <div class="text-xs text-green-400 mt-1">血糖</div>
+          </div>
+        </div>
+        {% if latest.notes %}
+        <p class="mt-4 text-sm text-slate-500 bg-slate-50 rounded-lg p-3">{{ latest.notes }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- 健康指標說明 -->
+      <div class="card p-6">
+        <h3 class="text-base font-semibold text-slate-700 mb-4">健康指標參考標準</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="flex gap-3 p-3 bg-green-50 rounded-xl">
+            <span class="text-2xl">❤️</span>
+            <div>
+              <p class="text-sm font-medium text-green-800">血壓正常範圍</p>
+              <p class="text-xs text-green-600">收縮壓 &lt; 120 / 舒張壓 &lt; 80 mmHg</p>
+            </div>
+          </div>
+          <div class="flex gap-3 p-3 bg-blue-50 rounded-xl">
+            <span class="text-2xl">💓</span>
+            <div>
+              <p class="text-sm font-medium text-blue-800">靜息心率正常範圍</p>
+              <p class="text-xs text-blue-600">60 – 100 bpm</p>
+            </div>
+          </div>
+          <div class="flex gap-3 p-3 bg-orange-50 rounded-xl">
+            <span class="text-2xl">🩸</span>
+            <div>
+              <p class="text-sm font-medium text-orange-800">空腹血糖正常範圍</p>
+              <p class="text-xs text-orange-600">3.9 – 6.1 mmol/L（70 – 110 mg/dL）</p>
+            </div>
+          </div>
+          <div class="flex gap-3 p-3 bg-purple-50 rounded-xl">
+            <span class="text-2xl">⚖️</span>
+            <div>
+              <p class="text-sm font-medium text-purple-800">BMI 正常範圍</p>
+              <p class="text-xs text-purple-600">18.5 – 24.9（亞洲人建議 &lt; 23）</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 歷史記錄表格 -->
+      <div class="card p-6">
+        <h3 class="text-base font-semibold text-slate-700 mb-4">歷史記錄（最近 20 筆）</h3>
+        {% if records %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-100">
+                <th class="text-left text-xs font-medium text-slate-500 pb-3 pr-4">日期</th>
+                <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">體重 (kg)</th>
+                <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">血壓</th>
+                <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">心率</th>
+                <th class="text-right text-xs font-medium text-slate-500 pb-3 pr-4">血糖</th>
+                <th class="text-left text-xs font-medium text-slate-500 pb-3 pr-4">備註</th>
+                <th class="text-center text-xs font-medium text-slate-500 pb-3">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              {% for rec in records %}
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="py-2.5 pr-4 text-slate-700 font-medium">{{ rec.record_date|date_fmt }}</td>
+                <td class="py-2.5 pr-4 text-right text-slate-600">{{ rec.weight or '—' }}</td>
+                <td class="py-2.5 pr-4 text-right text-slate-600">
+                  {% if rec.blood_pressure_sys and rec.blood_pressure_dia %}
+                  {{ rec.blood_pressure_sys }}/{{ rec.blood_pressure_dia }}
+                  {% else %}—{% endif %}
+                </td>
+                <td class="py-2.5 pr-4 text-right text-slate-600">{{ rec.heart_rate or '—' }}</td>
+                <td class="py-2.5 pr-4 text-right text-slate-600">{{ rec.blood_sugar or '—' }}</td>
+                <td class="py-2.5 pr-4 text-slate-400 text-xs max-w-xs truncate">{{ rec.notes or '—' }}</td>
+                <td class="py-2.5 text-center">
+                  <form method="POST" action="{{ url_for('health.delete', id=rec.id) }}"
+                        onsubmit="return confirm('確定刪除此筆記錄？')">
+                    <input type="hidden" name="user_id" value="{{ view_user.id }}">
+                    <button class="text-xs text-red-400 hover:text-red-600">刪除</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-center text-slate-400 py-8">尚無健康記錄</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 右側：快速新增 -->
+    <div>
+      <div class="card p-6 sticky top-24">
+        <h3 class="text-base font-semibold text-slate-700 mb-4">快速新增記錄</h3>
+        <form method="POST" action="{{ url_for('health.add') }}" class="space-y-4">
+          <input type="hidden" name="user_id" value="{{ view_user.id }}">
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">記錄日期 *</label>
+            <input type="date" name="record_date" required value="{{ today }}"
+                   class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">體重（kg）</label>
+            <input type="number" name="weight" step="0.1" placeholder="例如：72.5"
+                   class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">血壓（收縮壓 / 舒張壓）</label>
+            <div class="flex gap-2">
+              <input type="number" name="blood_pressure_sys" placeholder="120"
+                     class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+              <span class="flex items-center text-slate-400 text-sm">/</span>
+              <input type="number" name="blood_pressure_dia" placeholder="80"
+                     class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">心率（bpm）</label>
+            <input type="number" name="heart_rate" placeholder="例如：72"
+                   class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">血糖（mmol/L）</label>
+            <input type="number" name="blood_sugar" step="0.1" placeholder="例如：5.6"
+                   class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">備註</label>
+            <textarea name="notes" rows="2" placeholder="今日身體狀況..."
+                      class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none resize-none"></textarea>
+          </div>
+
+          <button type="submit"
+                  class="w-full py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+                  style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+            + 新增記錄
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

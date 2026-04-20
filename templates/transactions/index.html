@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}收支記錄{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- 頁面標題 + 月份篩選 -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">收支記錄</h1>
+    <form method="GET" action="{{ url_for('transactions.index') }}" class="flex items-center gap-2">
+      <label class="text-sm text-gray-600 font-medium">月份篩選：</label>
+      <select name="year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        {% for y in range(2020, current_year + 2) %}
+          <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }} 年</option>
+        {% endfor %}
+      </select>
+      <select name="month" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        {% for m in range(1, 13) %}
+          <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }} 月</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="px-4 py-2 rounded-lg text-white text-sm font-medium"
+        style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+        查詢
+      </button>
+    </form>
+  </div>
+
+  <!-- Flash 訊息 -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium
+        {% if category == 'success' %}bg-green-100 text-green-800 border border-green-200
+        {% else %}bg-red-100 text-red-800 border border-red-200{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- 統計卡 -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="card p-6">
+      <p class="text-sm text-gray-500 mb-1">當月收入</p>
+      <p class="text-2xl font-bold text-green-600">＄{{ total_income|money }}</p>
+    </div>
+    <div class="card p-6">
+      <p class="text-sm text-gray-500 mb-1">當月支出</p>
+      <p class="text-2xl font-bold text-red-500">＄{{ total_expense|money }}</p>
+    </div>
+    <div class="card p-6">
+      <p class="text-sm text-gray-500 mb-1">結餘</p>
+      <p class="text-2xl font-bold {% if balance >= 0 %}text-indigo-600{% else %}text-red-500{% endif %}">
+        ＄{{ balance|money }}
+      </p>
+    </div>
+  </div>
+
+  <!-- 主要內容：列表 + 快速新增 -->
+  <div class="flex flex-col lg:flex-row gap-6">
+
+    <!-- 交易列表 -->
+    <div class="flex-1 card p-6">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">
+        {{ current_year }} 年 {{ current_month }} 月 交易明細
+        <span class="ml-2 text-sm font-normal text-gray-400">共 {{ transactions|length }} 筆</span>
+      </h2>
+
+      {% if transactions %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-gray-500 text-left">
+                <th class="pb-3 pr-4 font-medium">日期</th>
+                <th class="pb-3 pr-4 font-medium">類型</th>
+                <th class="pb-3 pr-4 font-medium">類別</th>
+                <th class="pb-3 pr-4 font-medium">說明</th>
+                <th class="pb-3 pr-4 font-medium text-right">金額</th>
+                <th class="pb-3 font-medium text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for t in transactions %}
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="py-3 pr-4 text-gray-600 whitespace-nowrap">{{ t.date|date_fmt }}</td>
+                <td class="py-3 pr-4">
+                  {% if t.trans_type == 'income' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">收入</span>
+                  {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">支出</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 pr-4 text-gray-700">{{ t.category }}</td>
+                <td class="py-3 pr-4 text-gray-500 max-w-xs truncate">{{ t.description or '—' }}</td>
+                <td class="py-3 pr-4 text-right font-semibold
+                  {% if t.trans_type == 'income' %}text-green-600{% else %}text-red-500{% endif %}">
+                  {% if t.trans_type == 'expense' %}－{% endif %}＄{{ t.amount|money }}
+                </td>
+                <td class="py-3 text-center">
+                  <form method="POST" action="{{ url_for('transactions.delete', id=t.id) }}"
+                    onsubmit="return confirm('確定要刪除此筆記錄？')">
+                    <button type="submit"
+                      class="text-gray-400 hover:text-red-500 transition-colors text-xs px-2 py-1 rounded hover:bg-red-50">
+                      刪除
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-16 text-gray-400">
+          <svg class="mx-auto mb-3 w-12 h-12 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M9 17v-2m3 2v-4m3 4v-6M3 21h18M3 10l9-7 9 7M4 10v11M20 10v11"/>
+          </svg>
+          <p class="text-sm">本月尚無交易記錄</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 快速新增表單 -->
+    <div class="lg:w-80 card p-6 self-start" x-data="{ type: 'expense' }">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">快速新增</h2>
+      <form method="POST" action="{{ url_for('transactions.add') }}" class="space-y-4">
+        <input type="hidden" name="year" value="{{ current_year }}">
+        <input type="hidden" name="month" value="{{ current_month }}">
+
+        <!-- 日期 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
+          <input type="date" name="date"
+            value="{{ today.strftime('%Y-%m-%d') }}"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <!-- 類型 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">類型 <span class="text-red-400">*</span></label>
+          <select name="trans_type" x-model="type"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="expense">支出</option>
+            <option value="income">收入</option>
+          </select>
+        </div>
+
+        <!-- 類別 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">類別 <span class="text-red-400">*</span></label>
+          <div x-show="type === 'expense'">
+            <select name="category_expense"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for cat in ['餐飲', '交通', '購物', '娛樂', '醫療', '教育', '貸款還款', '保險', '其他'] %}
+                <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div x-show="type === 'income'">
+            <select name="category_income"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for cat in ['薪資', '業外收入', '投資收益', '租金收入', '其他收入'] %}
+                <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <!-- 隱藏欄位傳送實際值 -->
+          <input type="hidden" name="category"
+            :value="type === 'expense'
+              ? $el.previousElementSibling.previousElementSibling.querySelector('select').value
+              : $el.previousElementSibling.querySelector('select').value">
+        </div>
+
+        <!-- 金額 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">金額 <span class="text-red-400">*</span></label>
+          <input type="number" name="amount" min="0.01" step="0.01" placeholder="0"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <!-- 說明 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">說明</label>
+          <input type="text" name="description" placeholder="備註（選填）"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm"
+          style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+          新增記錄
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// 快速新增：同步 select 到隱藏欄位
+document.querySelectorAll('form[action*="add"] select[name="trans_type"]').forEach(sel => {
+  const syncCategory = () => {
+    const form = sel.closest('form');
+    const type = sel.value;
+    const catInput = form.querySelector('input[name="category"]');
+    const expSel = form.querySelector('select[name="category_expense"]');
+    const incSel = form.querySelector('select[name="category_income"]');
+    if (catInput && expSel && incSel) {
+      catInput.value = type === 'expense' ? expSel.value : incSel.value;
+    }
+  };
+  sel.addEventListener('change', syncCategory);
+  sel.closest('form').querySelectorAll('select[name^="category_"]').forEach(s => {
+    s.addEventListener('change', syncCategory);
+  });
+  syncCategory();
+});
+</script>
+{% endblock %}

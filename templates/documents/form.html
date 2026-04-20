@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if action == 'add' %}新增文件{% else %}編輯文件{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-6">
+
+  <!-- 麵包屑 -->
+  <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('documents.index') }}" class="hover:text-indigo-600 transition-colors">重要文件</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-gray-800 font-medium">{% if action == 'add' %}新增文件{% else %}編輯文件{% endif %}</span>
+  </nav>
+
+  <!-- Flash 訊息 -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium
+        {% if category == 'success' %}bg-green-100 text-green-800 border border-green-200
+        {% else %}bg-red-100 text-red-800 border border-red-200{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card p-6">
+    <h1 class="text-xl font-bold text-gray-800 mb-6">
+      {% if action == 'add' %}新增文件{% else %}編輯文件{% endif %}
+    </h1>
+
+    <form method="POST"
+      action="{% if action == 'add' %}{{ url_for('documents.add') }}{% else %}{{ url_for('documents.edit', id=doc.id) }}{% endif %}"
+      class="space-y-5">
+
+      <!-- 名稱 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">文件名稱 <span class="text-red-400">*</span></label>
+        <input type="text" name="name" required
+          value="{{ doc.name if doc else '' }}"
+          placeholder="例：王小明護照"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+
+      <!-- 類型 + 持有人（同列） -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">文件類型 <span class="text-red-400">*</span></label>
+          <select name="doc_type" required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="">請選擇類型</option>
+            {% for t in doc_types %}
+              <option value="{{ t }}" {% if doc and doc.doc_type == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">持有人</label>
+          <input type="text" name="owner_name"
+            value="{{ doc.owner_name if doc else '' }}"
+            placeholder="持有人姓名"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+      </div>
+
+      <!-- 核發日 + 到期日（同列） -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">核發日期</label>
+          <input type="date" name="issue_date"
+            value="{{ doc.issue_date.strftime('%Y-%m-%d') if doc and doc.issue_date else '' }}"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">到期日期</label>
+          <input type="date" name="expiry_date"
+            value="{{ doc.expiry_date.strftime('%Y-%m-%d') if doc and doc.expiry_date else '' }}"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <p class="text-xs text-gray-400 mt-1">長期有效者可不填</p>
+        </div>
+      </div>
+
+      <!-- 存放位置 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">存放位置</label>
+        <input type="text" name="storage_location"
+          value="{{ doc.storage_location if doc else '' }}"
+          placeholder="例：書房抽屜第二層、銀行保管箱"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+
+      <!-- 備註 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
+        <textarea name="notes" rows="3"
+          placeholder="其他備注..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ doc.notes if doc else '' }}</textarea>
+      </div>
+
+      <!-- 重要標記 -->
+      <div class="flex items-center gap-3 py-3 px-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <input type="checkbox" name="is_important" id="is_important"
+          {% if doc and doc.is_important %}checked{% endif %}
+          class="w-4 h-4 accent-yellow-500 cursor-pointer">
+        <label for="is_important" class="text-sm font-medium text-yellow-800 cursor-pointer">
+          標記為重要文件（置頂顯示）
+        </label>
+      </div>
+
+      <!-- 按鈕 -->
+      <div class="flex items-center gap-3 pt-2">
+        <button type="submit"
+          class="px-6 py-2.5 rounded-lg text-white font-medium text-sm"
+          style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+          {% if action == 'add' %}新增文件{% else %}儲存變更{% endif %}
+        </button>
+        <a href="{{ url_for('documents.index') }}"
+          class="px-6 py-2.5 rounded-lg text-gray-600 font-medium text-sm bg-gray-100 hover:bg-gray-200 transition-colors">
+          取消
+        </a>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}
