@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}帳單預覽 — 確認匯入{% endblock %}
+{% block page_title %}帳單預覽 — 確認匯入{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <a href="{{ url_for('transactions.import_cc') }}"
+     class="text-sm" style="color: var(--text-muted);">← 重新上傳</a>
+  <div class="text-sm" style="color: var(--text-muted);">
+    {{ bill_year }} 年 {{ bill_month }} 月帳單 ·
+    卡號末四碼 <strong class="text-slate-700">{{ card_last4 }}</strong> ·
+    共 <strong class="text-slate-700">{{ txns|length }}</strong> 筆
+  </div>
+</div>
+
+<!-- 統計 -->
+{% set expense_total = txns | selectattr('trans_type','eq','expense') | map(attribute='amount') | sum %}
+{% set income_total  = txns | selectattr('trans_type','eq','income')  | map(attribute='amount') | sum %}
+{% set dup_count     = txns | selectattr('duplicate') | list | length %}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-muted);">本期消費</div>
+    <div class="text-xl font-bold text-red-500">{{ expense_total|money }}</div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-muted);">退款/折讓</div>
+    <div class="text-xl font-bold text-emerald-600">{{ income_total|money }}</div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-muted);">疑似重複</div>
+    <div class="text-xl font-bold text-orange-500">{{ dup_count }} 筆</div>
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('transactions.import_cc_confirm') }}"
+      x-data="importPreview()" x-init="init()">
+
+  <!-- 工具列 -->
+  <div class="flex items-center justify-between mb-3">
+    <div class="flex gap-3 text-sm">
+      <button type="button" @click="selectAll()"
+              class="text-slate-500 hover:text-slate-700">全選</button>
+      <button type="button" @click="selectNone()"
+              class="text-slate-500 hover:text-slate-700">全不選</button>
+      {% if dup_count > 0 %}
+      <button type="button" @click="deselectDups()"
+              class="text-orange-500 hover:text-orange-700">取消重複（{{ dup_count }}）</button>
+      {% endif %}
+    </div>
+    <span class="text-sm" style="color: var(--text-muted);">已選 <span x-text="selectedCount"></span> 筆</span>
+  </div>
+
+  <!-- 交易列表 -->
+  <div class="card overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b text-xs uppercase tracking-wide" style="background: #F9F8F4; color: var(--text-muted);">
+            <th class="px-4 py-3 text-left w-10">✓</th>
+            <th class="px-4 py-3 text-left">日期</th>
+            <th class="px-4 py-3 text-left">說明</th>
+            <th class="px-4 py-3 text-left">類別</th>
+            <th class="px-4 py-3 text-left">類型</th>
+            <th class="px-4 py-3 text-right">金額</th>
+            <th class="px-4 py-3 text-left w-20">備注</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          {% for tx in txns %}
+          {% set idx = loop.index0 %}
+          <tr class="hover:bg-slate-50 transition"
+              :class="{ 'opacity-40': !checked[{{ idx }}] }">
+
+            <!-- 勾選框 -->
+            <td class="px-4 py-2.5">
+              <input type="checkbox" name="include" value="{{ idx }}"
+                     x-model="checked[{{ idx }}]"
+                     {% if not tx.duplicate %}checked{% endif %}
+                     class="w-4 h-4 rounded accent-slate-700">
+            </td>
+
+            <!-- 日期 -->
+            <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
+              {{ tx.date.strftime('%m/%d') }}
+            </td>
+
+            <!-- 說明 -->
+            <td class="px-4 py-2.5 text-slate-700 max-w-xs">
+              <div class="truncate">{{ tx.description }}</div>
+              {% if tx.foreign_info %}
+              <div class="text-xs text-slate-400">{{ tx.foreign_info }}</div>
+              {% endif %}
+            </td>
+
+            <!-- 類別（可編輯） -->
+            <td class="px-4 py-2.5">
+              <select name="category_{{ idx }}"
+                      class="text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 w-28">
+                {% for cat in expense_categories %}
+                <option value="{{ cat }}" {{ 'selected' if tx.category == cat }}>{{ cat }}</option>
+                {% endfor %}
+                {% for cat in income_categories %}
+                <option value="{{ cat }}" {{ 'selected' if tx.category == cat }}>{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </td>
+
+            <!-- 類型 -->
+            <td class="px-4 py-2.5">
+              <select name="trans_type_{{ idx }}"
+                      class="text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="expense" {{ 'selected' if tx.trans_type == 'expense' }}>支出</option>
+                <option value="income"  {{ 'selected' if tx.trans_type == 'income'  }}>退款</option>
+              </select>
+            </td>
+
+            <!-- 金額 -->
+            <td class="px-4 py-2.5 text-right font-semibold whitespace-nowrap
+              {{ 'text-red-500' if tx.trans_type == 'expense' else 'text-emerald-600' }}">
+              {% if tx.trans_type == 'expense' %}－{% endif %}${{ tx.amount|money }}
+            </td>
+
+            <!-- 標籤 -->
+            <td class="px-4 py-2.5">
+              {% if tx.duplicate %}
+              <span class="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 whitespace-nowrap">重複</span>
+              {% elif tx.category == '手續費' %}
+              <span class="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">手續費</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 送出 -->
+  <div class="flex items-center gap-4">
+    <button type="submit"
+            class="px-8 py-3 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+            style="background: #2C2C2A;"
+            :disabled="selectedCount === 0">
+      匯入已選 <span x-text="selectedCount"></span> 筆 →
+    </button>
+    <a href="{{ url_for('transactions.index') }}"
+       class="text-sm" style="color: var(--text-muted);">取消，不匯入</a>
+  </div>
+</form>
+
+<script>
+function importPreview() {
+  return {
+    checked: {},
+    get selectedCount() {
+      return Object.values(this.checked).filter(Boolean).length;
+    },
+    init() {
+      // 初始化：非重複的預設勾選
+      {% for tx in txns %}
+      this.checked[{{ loop.index0 }}] = {{ 'false' if tx.duplicate else 'true' }};
+      {% endfor %}
+    },
+    selectAll()      { Object.keys(this.checked).forEach(k => this.checked[k] = true);  },
+    selectNone()     { Object.keys(this.checked).forEach(k => this.checked[k] = false); },
+    deselectDups() {
+      {% for tx in txns %}
+      {% if tx.duplicate %}this.checked[{{ loop.index0 }}] = false;{% endif %}
+      {% endfor %}
+    },
+  };
+}
+</script>
+{% endblock %}
