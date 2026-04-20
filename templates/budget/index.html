@@ -10,7 +10,7 @@
   <div x-data="{ open: false }" class="relative">
     <button @click="open = !open"
             class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
-            style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+            style="background: #2C2C2A;">
       + 建立年度預算
     </button>
     <div x-show="open" @click.outside="open=false"
@@ -23,7 +23,7 @@
           {% endfor %}
         </select>
         <button type="submit" class="w-full py-2 rounded-lg text-white text-sm font-medium"
-                style="background: #4338ca;">建立</button>
+                style="background: #2C2C2A;">建立</button>
       </form>
     </div>
   </div>
@@ -75,7 +75,7 @@
     <input type="hidden" name="year" value="{{ current_year }}">
     <button type="submit"
             class="px-6 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
-            style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+            style="background: #2C2C2A;">
       建立 {{ current_year }} 年預算
     </button>
   </form>

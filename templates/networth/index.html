@@ -4,16 +4,14 @@
 
 {% block content %}
 <!-- Net Worth Hero -->
-<div class="rounded-2xl p-8 mb-6 text-white relative overflow-hidden"
-     style="background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);">
-  <div class="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10"
-       style="background: radial-gradient(circle, white, transparent); transform: translate(30%, -30%);"></div>
+<div class="rounded-2xl p-8 mb-6 relative overflow-hidden"
+     style="background: #1C1C1A;">
   <div class="relative z-10">
-    <div class="text-emerald-200 text-sm font-medium mb-2">家庭總資產淨值</div>
-    <div class="text-5xl font-bold mb-1 {{ 'text-white' if net_worth >= 0 else 'text-red-300' }}">
+    <div class="text-xs uppercase tracking-widest mb-3" style="color: rgba(255,255,255,0.4);">家庭總資產淨值</div>
+    <div class="text-5xl font-bold mb-1 {{ 'text-white' if net_worth >= 0 else 'text-red-400' }}">
       {{ net_worth|money }}
     </div>
-    <div class="text-emerald-300 text-sm mt-2">
+    <div class="text-sm mt-3" style="color: rgba(255,255,255,0.35);">
       總資產 {{ total_assets|money }} &minus; 總負債 {{ total_liabilities|money }}
     </div>
   </div>

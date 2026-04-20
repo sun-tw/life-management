@@ -5,68 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登入 — 人生管理系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #F5F4EF; }
+    input:focus { outline: none; border-color: #9B9B95 !important; box-shadow: 0 0 0 3px rgba(100,100,90,0.12); }
+  </style>
 </head>
-<body>
-<div class="min-h-screen flex" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);">
-  <!-- Left side: Quote -->
-  <div class="hidden lg:flex flex-1 flex-col justify-center px-16 text-white">
-    <div class="text-5xl mb-6">🌟</div>
-    <h1 class="text-4xl font-bold mb-4 leading-tight">人生管理系統</h1>
-    <p class="text-indigo-200 text-lg mb-8">掌握每一天，設計你想要的人生</p>
-    <div class="bg-white/10 backdrop-blur rounded-2xl p-6 max-w-md">
-      <div class="text-indigo-200 text-sm mb-2">💭 今日思考</div>
-      <blockquote class="text-white text-lg font-light leading-relaxed">
-        「人生不在於你活了多久，<br>而在於你活得有多深刻。」
-      </blockquote>
+<body class="min-h-screen flex">
+
+  <!-- 左側：品牌區 -->
+  <div class="hidden lg:flex flex-col justify-between w-96 flex-shrink-0 p-12"
+       style="background: #1C1C1A;">
+    <div>
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm mb-10"
+           style="background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.7);">◎</div>
+      <h1 class="text-2xl font-semibold text-white mb-3 leading-snug">人生管理系統</h1>
+      <p class="text-sm leading-relaxed" style="color: rgba(255,255,255,0.40);">
+        掌握財務、資產、目標，<br>設計屬於自己的人生節奏。
+      </p>
+    </div>
+
+    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 2rem;">
+      <p class="text-xs leading-relaxed" style="color: rgba(255,255,255,0.25);">
+        「不是擁有更多，<br>而是更清楚自己要什麼。」
+      </p>
     </div>
   </div>
 
-  <!-- Right side: Login Form -->
+  <!-- 右側：表單 -->
   <div class="flex-1 flex items-center justify-center px-8">
-    <div class="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md">
-      <div class="text-center mb-8">
-        <div class="text-4xl mb-3">👤</div>
-        <h2 class="text-2xl font-bold text-slate-800">歡迎回來</h2>
-        <p class="text-slate-500 text-sm mt-1">請輸入您的帳號密碼</p>
+    <div class="w-full max-w-sm">
+
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-1" style="color: #1A1A18;">歡迎回來</h2>
+        <p class="text-sm" style="color: #9B9B95;">請輸入帳號密碼</p>
       </div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
-          <div class="mb-4 p-3 rounded-lg text-sm
-            {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200
-            {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+          <div class="mb-5 px-4 py-3 rounded-lg text-sm
+            {% if category == 'error' %}bg-red-50 text-red-700 border border-red-100
+            {% else %}bg-amber-50 text-amber-700 border border-amber-100{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
       {% endwith %}
 
-      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">帳號</label>
+          <label class="block text-xs font-medium mb-1.5" style="color: #6B6B65;">帳號</label>
           <input type="text" name="username" required autofocus
-                 class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                 class="w-full px-3.5 py-2.5 border rounded-lg text-sm"
+                 style="border-color: #E5E3DC; background: #FDFCF9; color: #1A1A18;"
                  placeholder="輸入帳號">
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">密碼</label>
+          <label class="block text-xs font-medium mb-1.5" style="color: #6B6B65;">密碼</label>
           <input type="password" name="password" required
-                 class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                 class="w-full px-3.5 py-2.5 border rounded-lg text-sm"
+                 style="border-color: #E5E3DC; background: #FDFCF9; color: #1A1A18;"
                  placeholder="輸入密碼">
         </div>
-        <button type="submit"
-                class="w-full py-3 rounded-xl text-white font-semibold text-sm transition hover:opacity-90 active:scale-95"
-                style="background: linear-gradient(135deg, #4338ca, #6366f1);">
-          登入系統
-        </button>
+        <div class="pt-2">
+          <button type="submit"
+                  class="w-full py-2.5 rounded-lg text-white text-sm font-medium transition-colors"
+                  style="background: #2C2C2A;"
+                  onmouseover="this.style.background='#3D3D3A'"
+                  onmouseout="this.style.background='#2C2C2A'">
+            登入
+          </button>
+        </div>
       </form>
 
-      <div class="mt-6 text-center text-xs text-slate-400">
-        家庭管理系統 · 僅限家庭成員使用
-      </div>
+      <p class="mt-8 text-center text-xs" style="color: #C8C5BC;">
+        家庭專屬系統 · 僅限授權成員
+      </p>
     </div>
   </div>
-</div>
+
 </body>
 </html>
