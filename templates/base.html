@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}人生管理系統{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); }
+    .sidebar-link.active { background: rgba(255,255,255,0.15); border-left: 3px solid #fff; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06); }
+    .stat-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .flash-success { background: #d1fae5; border-left: 4px solid #10b981; color: #065f46; }
+    .flash-error { background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; }
+    .flash-warning { background: #fef3c7; border-left: 4px solid #f59e0b; color: #92400e; }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-paid { background: #e2e8f0; color: #475569; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .countdown-box { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+{% if current_user.is_authenticated %}
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 min-h-screen flex-shrink-0" style="background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);">
+    <!-- Logo -->
+    <div class="px-6 py-5 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style="background: rgba(255,255,255,0.15);">🌟</div>
+        <div>
+          <div class="text-white font-bold text-sm">人生管理系統</div>
+          <div class="text-indigo-300 text-xs">Life Management</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Info -->
+    <div class="px-6 py-4 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+             style="background: {{ current_user.avatar_color }};">
+          {{ current_user.display_name[0] }}
+        </div>
+        <div>
+          <div class="text-white text-sm font-medium">{{ current_user.display_name }}</div>
+          <div class="text-indigo-300 text-xs">{{ '管理員' if current_user.role == 'admin' else '成員' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="px-3 py-4 space-y-1">
+      <a href="{{ url_for('dashboard.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if request.endpoint == 'dashboard.index' else '' }}">
+        <span class="text-base">🏠</span> 首頁儀表板
+      </a>
+
+      <div class="pt-3 pb-1 px-3">
+        <div class="text-indigo-400 text-xs font-semibold uppercase tracking-wider">財務管理</div>
+      </div>
+      <a href="{{ url_for('loans.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'loans' in request.endpoint else '' }}">
+        <span class="text-base">💳</span> 貸款管理
+      </a>
+      <a href="{{ url_for('budget.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'budget' in request.endpoint else '' }}">
+        <span class="text-base">📊</span> 預算管理
+      </a>
+
+      <div class="pt-3 pb-1 px-3">
+        <div class="text-indigo-400 text-xs font-semibold uppercase tracking-wider">資產管理</div>
+      </div>
+      <a href="{{ url_for('vehicles.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'vehicles' in request.endpoint else '' }}">
+        <span class="text-base">🚗</span> 車輛管理
+      </a>
+      <a href="{{ url_for('properties.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'properties' in request.endpoint else '' }}">
+        <span class="text-base">🏠</span> 房產管理
+      </a>
+
+      <div class="pt-3 pb-1 px-3">
+        <div class="text-indigo-400 text-xs font-semibold uppercase tracking-wider">生活規劃</div>
+      </div>
+      <a href="{{ url_for('travel.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'travel' in request.endpoint else '' }}">
+        <span class="text-base">✈️</span> 旅遊管理
+      </a>
+      <a href="{{ url_for('settings.index') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-200 text-sm {{ 'active text-white' if 'settings' in request.endpoint else '' }}">
+        <span class="text-base">⚙️</span> 系統設定
+      </a>
+    </nav>
+
+    <!-- Logout -->
+    <div class="absolute bottom-0 left-0 w-64 px-3 py-4 border-t border-white/10">
+      <a href="{{ url_for('auth.logout') }}"
+         class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-300 text-sm hover:text-white">
+        <span class="text-base">🚪</span> 登出
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 overflow-auto">
+    <!-- Top Bar -->
+    <div class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <h1 class="text-slate-800 font-semibold text-lg">{% block page_title %}{% endblock %}</h1>
+      <div class="flex items-center gap-3 text-sm text-slate-500">
+        <span>{{ now.strftime('%Y年%m月%d日') if now else '' }}</span>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="px-8 pt-4">
+          {% for category, message in messages %}
+            <div class="flash-{{ category }} p-4 rounded-lg mb-3 text-sm flex items-center justify-between"
+                 x-data="{ show: true }" x-show="show">
+              <span>{{ message }}</span>
+              <button @click="show=false" class="ml-4 opacity-60 hover:opacity-100">✕</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="px-8 py-6">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script>
+  // Auto-dismiss flash messages
+  setTimeout(() => {
+    document.querySelectorAll('[x-data]').forEach(el => {
+      if (el.__x) el.__x.$data.show = false;
+    });
+  }, 5000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

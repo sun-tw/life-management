@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}房產{% endblock %}
+{% block page_title %}{{ action }}房產{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="card p-8">
+    <form method="POST">
+      <div class="grid grid-cols-2 gap-5">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">房產名稱 <span class="text-red-500">*</span></label>
+          <input type="text" name="name" required value="{{ property.name if property else '' }}"
+                 placeholder="例：新莊房子、台中門市"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">類型</label>
+          <select name="property_type" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            {% for t in ['住宅', '門市', '商業', '土地', '其他'] %}
+            <option value="{{ t }}" {{ 'selected' if property and property.property_type == t }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">持有人 <span class="text-red-500">*</span></label>
+          <input type="text" name="owner_name" required value="{{ property.owner_name if property else '' }}"
+                 placeholder="例：本人、太太、羅世琦"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">地址</label>
+          <input type="text" name="address" value="{{ property.address if property else '' }}"
+                 placeholder="例：新北市新莊區..."
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">狀態</label>
+          <select name="status" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            {% for s in statuses %}
+            <option value="{{ s }}" {{ 'selected' if property and property.status == s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">估計市值</label>
+          <input type="number" name="estimated_value" step="1" value="{{ property.estimated_value|int if property and property.estimated_value else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">關聯貸款</label>
+          <select name="loan_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">無貸款</option>
+            {% for loan in loans %}
+            <option value="{{ loan.id }}" {{ 'selected' if property and property.loan_id == loan.id }}>
+              {{ loan.name }} ({{ loan.current_balance|money }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">購置日期</label>
+          <input type="date" name="purchase_date" value="{{ property.purchase_date.isoformat() if property and property.purchase_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">售出日期</label>
+          <input type="date" name="sale_date" value="{{ property.sale_date.isoformat() if property and property.sale_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">交屋日期</label>
+          <input type="date" name="handover_date" value="{{ property.handover_date.isoformat() if property and property.handover_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">備註</label>
+          <textarea name="notes" rows="3"
+                    class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none">{{ property.notes if property else '' }}</textarea>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button type="submit" class="px-6 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+                style="background: linear-gradient(135deg, #4338ca, #6366f1);">{{ action }}房產</button>
+        <a href="{{ url_for('properties.index') }}" class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm hover:bg-slate-200">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}車輛管理{% endblock %}
+{% block page_title %}車輛管理{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-5">
+  <a href="{{ url_for('vehicles.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+     style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+    + 新增車輛
+  </a>
+</div>
+
+{% if vehicles %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+  {% for v in vehicles %}
+  <div class="card p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl
+          {{ 'bg-blue-100' if v.vehicle_type == '汽車' else 'bg-green-100' }}">
+          {{ '🚗' if v.vehicle_type == '汽車' else '🛵' }}
+        </div>
+        <div>
+          <div class="font-bold text-slate-800">{{ v.name }}</div>
+          <div class="text-slate-400 text-sm">{{ v.brand }} {{ v.model }}
+            {% if v.year %}· {{ v.year }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="flex gap-1">
+        <a href="{{ url_for('vehicles.edit', vid=v.id) }}"
+           class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition text-xs">✏️</a>
+        <form method="POST" action="{{ url_for('vehicles.delete', vid=v.id) }}"
+              onsubmit="return confirm('確定刪除？')">
+          <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition text-xs">🗑️</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <span class="text-slate-500">車主</span>
+        <span class="font-medium text-slate-700">{{ v.owner_name }}</span>
+      </div>
+      {% if v.plate_number %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">車牌</span>
+        <span class="font-medium text-slate-700">{{ v.plate_number }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">貸款</span>
+        {% if v.loan %}
+        <span class="text-orange-500 font-medium">{{ v.loan.current_balance|money }} 待還</span>
+        {% else %}
+        <span class="text-emerald-500 font-medium">✓ 無貸款</span>
+        {% endif %}
+      </div>
+      {% if v.insurance_due %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">保險到期</span>
+        <span class="font-medium {{ 'text-red-500' if (v.insurance_due - today).days <= 30 else 'text-slate-700' }}">
+          {{ v.insurance_due|date_fmt }}
+        </span>
+      </div>
+      {% endif %}
+      {% if v.maintenance_due %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">保養提醒</span>
+        <span class="font-medium {{ 'text-orange-500' if (v.maintenance_due - today).days <= 30 else 'text-slate-700' }}">
+          {{ v.maintenance_due|date_fmt }}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+    {% if v.notes %}
+    <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">{{ v.notes }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">🚗</div>
+  <p class="text-slate-400 text-sm">還沒有車輛記錄</p>
+  <a href="{{ url_for('vehicles.add') }}" class="mt-3 inline-block text-indigo-500 text-sm hover:underline">+ 新增車輛</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const today = new Date();
+</script>
+{% endblock %}

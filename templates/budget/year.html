@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}{{ year }} 年預算{% endblock %}
+{% block page_title %}{{ year }} 年度預算{% endblock %}
+
+{% block content %}
+<!-- Summary -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+  {% set total_income = budget.total_income_planned() %}
+  {% set total_expense = budget.total_expense_planned() %}
+  {% set net = budget.net_planned() %}
+
+  <div class="stat-card p-5">
+    <div class="text-slate-500 text-xs uppercase tracking-wide mb-2">預計總收入</div>
+    <div class="text-2xl font-bold text-emerald-600">{{ total_income|money }}</div>
+  </div>
+  <div class="stat-card p-5">
+    <div class="text-slate-500 text-xs uppercase tracking-wide mb-2">預計總支出</div>
+    <div class="text-2xl font-bold text-red-500">{{ total_expense|money }}</div>
+    <div class="text-slate-400 text-xs mt-1">月均 {{ (total_expense/12)|money }}</div>
+  </div>
+  <div class="stat-card p-5">
+    <div class="text-slate-500 text-xs uppercase tracking-wide mb-2">預計結餘</div>
+    <div class="text-2xl font-bold {{ 'text-emerald-600' if net >= 0 else 'text-red-500' }}">{{ net|money }}</div>
+  </div>
+  <div class="stat-card p-5">
+    <div class="text-slate-500 text-xs uppercase tracking-wide mb-2">貸款佔支出</div>
+    {% if total_expense > 0 %}
+    <div class="text-2xl font-bold text-orange-500">{{ (annual_loan_total / total_expense * 100)|round(1) }}%</div>
+    <div class="text-slate-400 text-xs mt-1">年繳 {{ annual_loan_total|money }}</div>
+    {% else %}
+    <div class="text-2xl font-bold text-slate-400">-</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Loan Integration Note -->
+{% if active_loans %}
+<div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+  <span class="text-orange-500 text-lg">💳</span>
+  <div>
+    <div class="text-orange-800 text-sm font-medium">貸款固定支出提醒</div>
+    <div class="text-orange-600 text-sm mt-1">
+      目前每月貸款合計 <strong>{{ (annual_loan_total/12)|money }}</strong>，
+      年度合計 <strong>{{ annual_loan_total|money }}</strong>。
+      請確認已將此金額納入「貸款還款」類別。
+    </div>
+    <div class="mt-2 flex flex-wrap gap-2">
+      {% for loan in active_loans %}
+      <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+        {{ loan.name }}: {{ loan.monthly_payment|money }}/月
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-2 gap-6">
+  <!-- Income -->
+  <div>
+    <div class="flex items-center justify-between mb-3" x-data="{ showAdd: false }">
+      <h3 class="font-semibold text-slate-800">💚 收入類別</h3>
+      <button @click="showAdd = !showAdd"
+              class="text-sm text-indigo-500 hover:underline">+ 新增類別</button>
+
+      <div x-show="showAdd" x-cloak
+           class="absolute right-0 mt-8 bg-white rounded-xl shadow-xl p-4 z-20 w-64">
+        <form method="POST" action="{{ url_for('budget.add_category') }}">
+          <input type="hidden" name="budget_year_id" value="{{ budget.id }}">
+          <input type="hidden" name="category_type" value="income">
+          <input type="text" name="category_name" placeholder="類別名稱" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <input type="number" name="planned_amount" placeholder="預計金額" step="1"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button type="submit" class="w-full py-2 rounded-lg text-white text-sm"
+                  style="background: #4338ca;">新增</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      {% for cat in income_cats %}
+      <div class="card p-4" x-data="{ editing: false, showSub: false }">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div x-show="!editing" class="font-medium text-slate-800 text-sm">{{ cat.category_name }}</div>
+            <form x-show="editing" method="POST" action="{{ url_for('budget.update_category', cat_id=cat.id) }}" class="flex gap-2">
+              <input type="text" name="category_name" value="{{ cat.category_name }}"
+                     class="flex-1 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <input type="number" name="planned_amount" value="{{ cat.planned_amount|int }}" step="1"
+                     class="w-28 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <input type="number" name="actual_amount" value="{{ cat.actual_amount|int }}" step="1"
+                     class="w-28 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <button type="submit" class="px-3 py-1 rounded text-xs bg-indigo-500 text-white">儲存</button>
+              <button type="button" @click="editing=false" class="px-3 py-1 rounded text-xs bg-slate-200 text-slate-600">取消</button>
+            </form>
+          </div>
+          <div x-show="!editing" class="flex items-center gap-3 ml-3">
+            <div class="text-right">
+              <div class="text-sm font-semibold text-emerald-600">{{ cat.planned_amount|money }}</div>
+              {% if cat.actual_amount > 0 %}
+              <div class="text-xs text-slate-400">實際 {{ cat.actual_amount|money }}</div>
+              {% if cat.achievement_rate() %}
+              <div class="text-xs {{ 'text-emerald-500' if cat.achievement_rate() >= 100 else 'text-orange-500' }}">
+                達成率 {{ cat.achievement_rate() }}%
+              </div>
+              {% endif %}
+              {% endif %}
+            </div>
+            <button @click="editing=true" class="text-slate-300 hover:text-slate-500 text-xs">✏️</button>
+            <form method="POST" action="{{ url_for('budget.delete_category', cat_id=cat.id) }}"
+                  onsubmit="return confirm('刪除「{{ cat.category_name }}」？')">
+              <button type="submit" class="text-slate-300 hover:text-red-400 text-xs">🗑️</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Subcategories -->
+        {% if cat.subcategories %}
+        <div class="mt-3 space-y-1 pl-3 border-l-2 border-slate-100">
+          {% for sub in cat.subcategories %}
+          <div class="flex justify-between text-xs text-slate-500">
+            <span>{{ sub.subcategory_name }}</span>
+            <div class="flex gap-3">
+              <span>{{ sub.planned_amount|money }}</span>
+              <form method="POST" action="{{ url_for('budget.delete_subcategory', sub_id=sub.id) }}">
+                <button type="submit" class="text-slate-300 hover:text-red-400">✕</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <button @click="showSub = !showSub" class="text-xs text-slate-400 hover:text-indigo-500 mt-2">+ 新增子項目</button>
+        <div x-show="showSub" class="mt-2">
+          <form method="POST" action="{{ url_for('budget.add_subcategory') }}" class="flex gap-2">
+            <input type="hidden" name="category_id" value="{{ cat.id }}">
+            <input type="text" name="subcategory_name" placeholder="子項目名稱"
+                   class="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="number" name="planned_amount" placeholder="金額" step="1"
+                   class="w-24 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button type="submit" class="px-3 py-1 rounded text-xs bg-indigo-500 text-white">新增</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="card p-6 text-center text-slate-400 text-sm">尚無收入類別</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Expense -->
+  <div>
+    <div class="flex items-center justify-between mb-3" x-data="{ showAdd: false }">
+      <h3 class="font-semibold text-slate-800">❤️ 支出類別</h3>
+      <button @click="showAdd = !showAdd"
+              class="text-sm text-indigo-500 hover:underline">+ 新增類別</button>
+
+      <div x-show="showAdd" x-cloak
+           class="absolute right-0 mt-8 bg-white rounded-xl shadow-xl p-4 z-20 w-64">
+        <form method="POST" action="{{ url_for('budget.add_category') }}">
+          <input type="hidden" name="budget_year_id" value="{{ budget.id }}">
+          <input type="hidden" name="category_type" value="expense">
+          <input type="text" name="category_name" placeholder="類別名稱" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <input type="number" name="planned_amount" placeholder="預計金額" step="1"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button type="submit" class="w-full py-2 rounded-lg text-white text-sm"
+                  style="background: #4338ca;">新增</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      {% for cat in expense_cats %}
+      <div class="card p-4" x-data="{ editing: false, showSub: false }">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div x-show="!editing" class="font-medium text-slate-800 text-sm">{{ cat.category_name }}</div>
+            <form x-show="editing" method="POST" action="{{ url_for('budget.update_category', cat_id=cat.id) }}" class="flex gap-2">
+              <input type="text" name="category_name" value="{{ cat.category_name }}"
+                     class="flex-1 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <input type="number" name="planned_amount" value="{{ cat.planned_amount|int }}" step="1"
+                     class="w-28 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <input type="number" name="actual_amount" value="{{ cat.actual_amount|int }}" step="1"
+                     class="w-28 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <button type="submit" class="px-3 py-1 rounded text-xs bg-indigo-500 text-white">儲存</button>
+              <button type="button" @click="editing=false" class="px-3 py-1 rounded text-xs bg-slate-200 text-slate-600">取消</button>
+            </form>
+          </div>
+          <div x-show="!editing" class="flex items-center gap-3 ml-3">
+            <div class="text-right">
+              <div class="text-sm font-semibold text-red-500">{{ cat.planned_amount|money }}</div>
+              {% if cat.actual_amount > 0 %}
+              <div class="text-xs text-slate-400">實際 {{ cat.actual_amount|money }}</div>
+              {% if cat.achievement_rate() %}
+              <div class="text-xs {{ 'text-red-500' if cat.achievement_rate() > 100 else 'text-emerald-500' }}">
+                達成率 {{ cat.achievement_rate() }}%
+              </div>
+              {% endif %}
+              {% endif %}
+            </div>
+            <button @click="editing=true" class="text-slate-300 hover:text-slate-500 text-xs">✏️</button>
+            <form method="POST" action="{{ url_for('budget.delete_category', cat_id=cat.id) }}"
+                  onsubmit="return confirm('刪除「{{ cat.category_name }}」？')">
+              <button type="submit" class="text-slate-300 hover:text-red-400 text-xs">🗑️</button>
+            </form>
+          </div>
+        </div>
+
+        {% if cat.subcategories %}
+        <div class="mt-3 space-y-1 pl-3 border-l-2 border-slate-100">
+          {% for sub in cat.subcategories %}
+          <div class="flex justify-between text-xs text-slate-500">
+            <span>{{ sub.subcategory_name }}</span>
+            <div class="flex gap-3">
+              <span>{{ sub.planned_amount|money }}</span>
+              <form method="POST" action="{{ url_for('budget.delete_subcategory', sub_id=sub.id) }}">
+                <button type="submit" class="text-slate-300 hover:text-red-400">✕</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <button @click="showSub = !showSub" class="text-xs text-slate-400 hover:text-indigo-500 mt-2">+ 新增子項目</button>
+        <div x-show="showSub" class="mt-2">
+          <form method="POST" action="{{ url_for('budget.add_subcategory') }}" class="flex gap-2">
+            <input type="hidden" name="category_id" value="{{ cat.id }}">
+            <input type="text" name="subcategory_name" placeholder="子項目名稱"
+                   class="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="number" name="planned_amount" placeholder="金額" step="1"
+                   class="w-24 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button type="submit" class="px-3 py-1 rounded text-xs bg-indigo-500 text-white">新增</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="card p-6 text-center text-slate-400 text-sm">尚無支出類別</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

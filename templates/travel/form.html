@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}旅遊計劃{% endblock %}
+{% block page_title %}{{ action }}旅遊計劃{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="card p-8">
+    <form method="POST">
+      <div class="grid grid-cols-2 gap-5">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">計劃名稱 <span class="text-red-500">*</span></label>
+          <input type="text" name="trip_name" required value="{{ plan.trip_name if plan else '' }}"
+                 placeholder="例：日本東京賞楓之旅"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">目的地 <span class="text-red-500">*</span></label>
+          <input type="text" name="destination" required value="{{ plan.destination if plan else '' }}"
+                 placeholder="例：日本東京、法國巴黎"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">出發日期</label>
+          <input type="date" name="start_date" value="{{ plan.start_date.isoformat() if plan and plan.start_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">返回日期</label>
+          <input type="date" name="end_date" value="{{ plan.end_date.isoformat() if plan and plan.end_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">預算總額</label>
+          <input type="number" name="total_budget" step="1" value="{{ plan.total_budget|int if plan else '' }}"
+                 placeholder="0"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">狀態</label>
+          <select name="status" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            {% for s in statuses %}
+            <option value="{{ s }}" {{ 'selected' if plan and plan.status == s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">備註</label>
+          <textarea name="notes" rows="3"
+                    class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none">{{ plan.notes if plan else '' }}</textarea>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button type="submit" class="px-6 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+                style="background: linear-gradient(135deg, #4338ca, #6366f1);">{{ action }}計劃</button>
+        <a href="{{ url_for('travel.index') }}" class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm hover:bg-slate-200">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

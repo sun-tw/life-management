@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}貸款{% endblock %}
+{% block page_title %}{{ action }}貸款{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="card p-8">
+    <form method="POST">
+      <div class="grid grid-cols-2 gap-5">
+        <!-- Name -->
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">貸款名稱 <span class="text-red-500">*</span></label>
+          <input type="text" name="name" required value="{{ loan.name if loan else '' }}"
+                 placeholder="例：Tesla Model Y 貸款"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Type -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">貸款類型 <span class="text-red-500">*</span></label>
+          <select name="loan_type" required
+                  class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            {% for t in loan_types %}
+            <option value="{{ t }}" {{ 'selected' if loan and loan.loan_type == t else '' }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Borrower -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">借款人 <span class="text-red-500">*</span></label>
+          <input type="text" name="borrower_name" required value="{{ loan.borrower_name if loan else '' }}"
+                 placeholder="例：本人、太太、羅世琦"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Original Amount -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">原始貸款金額</label>
+          <input type="number" name="original_amount" step="1" value="{{ loan.original_amount|int if loan else '' }}"
+                 placeholder="0"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Current Balance -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">目前餘額 <span class="text-red-500">*</span></label>
+          <input type="number" name="current_balance" step="1" required value="{{ loan.current_balance|int if loan else '' }}"
+                 placeholder="0"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Monthly Payment -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">月繳金額 <span class="text-red-500">*</span></label>
+          <input type="number" name="monthly_payment" step="1" required value="{{ loan.monthly_payment|int if loan else '' }}"
+                 placeholder="0"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Interest Rate -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">年利率 (%)</label>
+          <input type="number" name="interest_rate" step="0.01" value="{{ loan.interest_rate if loan and loan.interest_rate else '' }}"
+                 placeholder="例：2.5"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Interest Only -->
+        <div class="col-span-2">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" name="interest_only" {{ 'checked' if loan and loan.interest_only else '' }}
+                   class="w-4 h-4 rounded text-indigo-600">
+            <span class="text-sm text-slate-700">只繳息（不還本金）</span>
+          </label>
+        </div>
+
+        <!-- Start Date -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">開始日期</label>
+          <input type="date" name="start_date" value="{{ loan.start_date.isoformat() if loan and loan.start_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- End Date -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">到期日期</label>
+          <input type="date" name="end_date" value="{{ loan.end_date.isoformat() if loan and loan.end_date else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">狀態</label>
+          <select name="status"
+                  class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="active" {{ 'selected' if not loan or loan.status == 'active' }}>進行中</option>
+            <option value="paid" {{ 'selected' if loan and loan.status == 'paid' }}>已還清</option>
+          </select>
+        </div>
+
+        <!-- Notes -->
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">備註</label>
+          <textarea name="notes" rows="3"
+                    placeholder="補充說明..."
+                    class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none">{{ loan.notes if loan else '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button type="submit"
+                class="px-6 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+                style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+          {{ action }}貸款
+        </button>
+        <a href="{{ url_for('loans.index') }}"
+           class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 transition">
+          取消
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

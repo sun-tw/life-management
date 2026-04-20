@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}車輛{% endblock %}
+{% block page_title %}{{ action }}車輛{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="card p-8">
+    <form method="POST">
+      <div class="grid grid-cols-2 gap-5">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">車輛名稱 <span class="text-red-500">*</span></label>
+          <input type="text" name="name" required value="{{ vehicle.name if vehicle else '' }}"
+                 placeholder="例：Jimmy 吉米、Gogoro"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">類型</label>
+          <select name="vehicle_type" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="汽車" {{ 'selected' if vehicle and vehicle.vehicle_type == '汽車' }}>汽車</option>
+            <option value="機車" {{ 'selected' if vehicle and vehicle.vehicle_type == '機車' }}>機車</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">車主 <span class="text-red-500">*</span></label>
+          <input type="text" name="owner_name" required value="{{ vehicle.owner_name if vehicle else '' }}"
+                 placeholder="例：本人、太太"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">品牌</label>
+          <input type="text" name="brand" value="{{ vehicle.brand if vehicle else '' }}"
+                 placeholder="例：Suzuki、Tesla"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">型號</label>
+          <input type="text" name="model" value="{{ vehicle.model if vehicle else '' }}"
+                 placeholder="例：Model Y"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">出廠年份</label>
+          <input type="number" name="year" value="{{ vehicle.year if vehicle else '' }}"
+                 placeholder="例：2022"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">車牌號碼</label>
+          <input type="text" name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">關聯貸款</label>
+          <select name="loan_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">無貸款</option>
+            {% for loan in loans %}
+            <option value="{{ loan.id }}" {{ 'selected' if vehicle and vehicle.loan_id == loan.id }}>
+              {{ loan.name }} ({{ loan.current_balance|money }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">保險到期日</label>
+          <input type="date" name="insurance_due" value="{{ vehicle.insurance_due.isoformat() if vehicle and vehicle.insurance_due else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">保養提醒日</label>
+          <input type="date" name="maintenance_due" value="{{ vehicle.maintenance_due.isoformat() if vehicle and vehicle.maintenance_due else '' }}"
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">備註</label>
+          <textarea name="notes" rows="3"
+                    class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none">{{ vehicle.notes if vehicle else '' }}</textarea>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button type="submit" class="px-6 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+                style="background: linear-gradient(135deg, #4338ca, #6366f1);">{{ action }}車輛</button>
+        <a href="{{ url_for('vehicles.index') }}" class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm hover:bg-slate-200">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

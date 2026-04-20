@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}房產管理{% endblock %}
+{% block page_title %}房產管理{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-5">
+  <a href="{{ url_for('properties.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+     style="background: linear-gradient(135deg, #4338ca, #6366f1);">
+    + 新增房產
+  </a>
+</div>
+
+{% if properties %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+  {% for p in properties %}
+  <div class="card p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl
+          {% if p.property_type == '住宅' %}bg-blue-100
+          {% elif p.property_type == '門市' %}bg-purple-100
+          {% else %}bg-green-100{% endif %}">
+          {% if p.property_type == '住宅' %}🏠
+          {% elif p.property_type == '門市' %}🏪
+          {% else %}🏢{% endif %}
+        </div>
+        <div>
+          <div class="font-bold text-slate-800">{{ p.name }}</div>
+          <div class="text-slate-400 text-sm">{{ p.property_type }} · {{ p.owner_name }}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium
+          {% if p.status == '持有中' %}bg-emerald-100 text-emerald-700
+          {% elif p.status == '已售出' or p.status == '交屋中' %}bg-orange-100 text-orange-700
+          {% else %}bg-blue-100 text-blue-700{% endif %}">
+          {{ p.status }}
+        </span>
+        <a href="{{ url_for('properties.edit', pid=p.id) }}" class="text-slate-400 hover:text-slate-600 text-xs">✏️</a>
+        <form method="POST" action="{{ url_for('properties.delete', pid=p.id) }}"
+              onsubmit="return confirm('確定刪除？')">
+          <button type="submit" class="text-slate-400 hover:text-red-500 text-xs">🗑️</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-2 text-sm">
+      {% if p.address %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">地址</span>
+        <span class="text-slate-700 text-right max-w-48">{{ p.address }}</span>
+      </div>
+      {% endif %}
+      {% if p.estimated_value %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">估值</span>
+        <span class="font-medium text-slate-700">{{ p.estimated_value|money }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">相關貸款</span>
+        {% if p.loan %}
+        <span class="text-orange-500 font-medium">{{ p.loan.name }} · {{ p.loan.current_balance|money }}</span>
+        {% else %}
+        <span class="text-emerald-500 font-medium">✓ 無貸款</span>
+        {% endif %}
+      </div>
+      {% if p.sale_date %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">售出日期</span>
+        <span class="text-slate-700">{{ p.sale_date|date_fmt }}</span>
+      </div>
+      {% endif %}
+      {% if p.handover_date %}
+      <div class="flex justify-between">
+        <span class="text-slate-500">交屋日期</span>
+        <span class="font-medium text-indigo-600">{{ p.handover_date|date_fmt }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if p.notes %}
+    <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">{{ p.notes }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">🏠</div>
+  <p class="text-slate-400 text-sm">還沒有房產記錄</p>
+  <a href="{{ url_for('properties.add') }}" class="mt-3 inline-block text-indigo-500 text-sm hover:underline">+ 新增房產</a>
+</div>
+{% endif %}
+{% endblock %}

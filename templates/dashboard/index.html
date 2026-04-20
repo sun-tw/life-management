@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}首頁儀表板{% endblock %}
+{% block page_title %}首頁儀表板{% endblock %}
+
+{% block content %}
+<!-- Life Countdown Section -->
+<div class="countdown-box rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style="background: radial-gradient(circle, white, transparent); transform: translate(30%, -30%);"></div>
+  <div class="relative z-10">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-2xl">⏳</span>
+      <span class="text-indigo-200 font-medium">人生倒數計時 — {{ current_user.display_name }}</span>
+    </div>
+
+    {% set remaining_days = current_user.remaining_days() %}
+    {% set remaining_hours = current_user.remaining_waking_hours() %}
+
+    {% if remaining_days is not none %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold">{{ (remaining_days // 365) }}</div>
+        <div class="text-indigo-200 text-xs mt-1">剩餘年數</div>
+      </div>
+      <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold">{{ '{:,}'.format(remaining_days) }}</div>
+        <div class="text-indigo-200 text-xs mt-1">剩餘天數</div>
+      </div>
+      <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+        <div class="text-3xl font-bold" id="live-hours">{{ '{:,}'.format(remaining_hours) }}</div>
+        <div class="text-indigo-200 text-xs mt-1">清醒小時數</div>
+      </div>
+      <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+        <div class="text-xl font-bold">{{ current_user.birth_date.year + current_user.life_expectancy if current_user.birth_date else '-' }}</div>
+        <div class="text-indigo-200 text-xs mt-1">預估年份</div>
+      </div>
+    </div>
+    <div class="mt-4 bg-white/10 rounded-full h-2">
+      {% set life_pct = ((current_user.life_expectancy * 365 - remaining_days) / (current_user.life_expectancy * 365) * 100)|round(1) %}
+      <div class="bg-white rounded-full h-2 transition-all" style="width: {{ life_pct }}%"></div>
+    </div>
+    <div class="text-indigo-300 text-xs mt-1.5 text-right">人生已過 {{ life_pct }}%</div>
+    {% else %}
+    <div class="bg-white/10 rounded-xl p-4 text-center">
+      <p class="text-indigo-200 text-sm">請至 <a href="{{ url_for('settings.index') }}" class="underline">系統設定</a> 填寫生日，啟用人生倒數功能</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-500 text-xs font-medium uppercase tracking-wide">每月貸款</span>
+      <span class="text-xl">💳</span>
+    </div>
+    <div class="text-2xl font-bold text-slate-800">{{ total_monthly|money }}</div>
+    <div class="text-slate-400 text-xs mt-1">每月固定支出</div>
+  </div>
+
+  <div class="stat-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-500 text-xs font-medium uppercase tracking-wide">貸款總餘額</span>
+      <span class="text-xl">🏦</span>
+    </div>
+    <div class="text-2xl font-bold text-slate-800">{{ total_balance|money }}</div>
+    <div class="text-slate-400 text-xs mt-1">{{ loans|length }} 筆貸款</div>
+  </div>
+
+  <div class="stat-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-500 text-xs font-medium uppercase tracking-wide">今年預算</span>
+      <span class="text-xl">📊</span>
+    </div>
+    {% if budget %}
+    <div class="text-2xl font-bold text-slate-800">{{ budget.net_planned()|money }}</div>
+    <div class="text-slate-400 text-xs mt-1">{{ current_year }} 年預計結餘</div>
+    {% else %}
+    <div class="text-2xl font-bold text-slate-400">未設定</div>
+    <div class="text-slate-400 text-xs mt-1"><a href="{{ url_for('budget.index') }}" class="text-indigo-500 hover:underline">建立 {{ current_year }} 年預算</a></div>
+    {% endif %}
+  </div>
+
+  <div class="stat-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-500 text-xs font-medium uppercase tracking-wide">旅遊計劃</span>
+      <span class="text-xl">✈️</span>
+    </div>
+    <div class="text-2xl font-bold text-slate-800">{{ travels|length }}</div>
+    <div class="text-slate-400 text-xs mt-1">進行中的計劃</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Loans Summary -->
+  <div class="lg:col-span-2 card p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-semibold text-slate-800">貸款狀況</h3>
+      <a href="{{ url_for('loans.index') }}" class="text-indigo-500 text-sm hover:underline">查看全部 →</a>
+    </div>
+
+    {% if loans %}
+    <div class="space-y-3">
+      {% for loan in loans %}
+      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center text-sm
+            {% if loan.loan_type == '車貸' %}bg-blue-100 text-blue-600
+            {% elif loan.loan_type == '房貸' %}bg-green-100 text-green-600
+            {% elif loan.loan_type == '周轉金' %}bg-orange-100 text-orange-600
+            {% else %}bg-purple-100 text-purple-600{% endif %}">
+            {% if loan.loan_type == '車貸' %}🚗
+            {% elif loan.loan_type == '房貸' %}🏠
+            {% elif loan.loan_type == '周轉金' %}💰
+            {% else %}💳{% endif %}
+          </div>
+          <div>
+            <div class="font-medium text-slate-800 text-sm">{{ loan.name }}</div>
+            <div class="text-slate-400 text-xs">{{ loan.borrower_name }} · {{ loan.loan_type }}
+              {% if loan.interest_only %}<span class="ml-1 text-orange-500">· 只繳息</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-semibold text-slate-800 text-sm">{{ loan.current_balance|money }}</div>
+          <div class="text-slate-400 text-xs">月繳 {{ loan.monthly_payment|money }}</div>
+          {% set payoff = loan.payoff_date_estimate() %}
+          {% if payoff %}
+          <div class="text-emerald-500 text-xs">{{ payoff.strftime('%Y/%m') }} 還清</div>
+          {% elif loan.interest_only %}
+          <div class="text-orange-400 text-xs">僅付息</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-slate-400">
+      <div class="text-3xl mb-2">🎉</div>
+      <p class="text-sm">目前沒有貸款記錄</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Column -->
+  <div class="space-y-6">
+    <!-- Reminders -->
+    <div class="card p-6">
+      <h3 class="font-semibold text-slate-800 mb-4">重要提醒</h3>
+      {% if reminders %}
+      <div class="space-y-3">
+        {% for r in reminders %}
+        <div class="flex items-start gap-3 p-3 rounded-xl {{ 'bg-red-50' if r.urgent else 'bg-slate-50' }}">
+          <span class="text-lg">{{ r.icon }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-700">{{ r.text }}</div>
+            <div class="text-xs text-slate-400">{{ r.date|date_fmt }}</div>
+          </div>
+          <div class="text-xs font-medium {{ 'text-red-500' if r.urgent else 'text-slate-400' }}">
+            {{ r.days_left }}天
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-slate-400 text-sm text-center py-4">目前沒有重要提醒</p>
+      {% endif %}
+    </div>
+
+    <!-- Travel Plans -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-slate-800">旅遊計劃</h3>
+        <a href="{{ url_for('travel.index') }}" class="text-indigo-500 text-xs hover:underline">全部</a>
+      </div>
+      {% if travels %}
+      <div class="space-y-3">
+        {% for t in travels %}
+        <a href="{{ url_for('travel.detail', plan_id=t.id) }}" class="block p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
+          <div class="font-medium text-slate-800 text-sm">{{ t.trip_name }}</div>
+          <div class="text-slate-400 text-xs mt-0.5">{{ t.destination }}</div>
+          {% if t.start_date %}
+          <div class="text-indigo-500 text-xs mt-1">{{ t.start_date|date_fmt }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-4">
+        <p class="text-slate-400 text-sm mb-2">還沒有旅遊計劃</p>
+        <a href="{{ url_for('travel.add') }}" class="text-indigo-500 text-xs hover:underline">+ 新增旅遊計劃</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
