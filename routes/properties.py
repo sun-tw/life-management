@@ -35,7 +35,7 @@ def add():
         db.session.add(p)
         db.session.commit()
         flash(f'房產「{p.name}」已新增', 'success')
-        return redirect(url_for('properties.index'))
+        return redirect(url_for('assets.index', tab='properties'))
     return render_template('properties/form.html', property=None, loans=loans, statuses=PROPERTY_STATUSES, action='新增')
 
 @properties_bp.route('/edit/<int:pid>', methods=['GET', 'POST'])
@@ -57,7 +57,7 @@ def edit(pid):
         p.notes = request.form.get('notes', '')
         db.session.commit()
         flash(f'房產「{p.name}」已更新', 'success')
-        return redirect(url_for('properties.index'))
+        return redirect(url_for('assets.index', tab='properties'))
     return render_template('properties/form.html', property=p, loans=loans, statuses=PROPERTY_STATUSES, action='編輯')
 
 @properties_bp.route('/delete/<int:pid>', methods=['POST'])
@@ -68,4 +68,4 @@ def delete(pid):
     db.session.delete(p)
     db.session.commit()
     flash(f'房產「{name}」已刪除', 'success')
-    return redirect(url_for('properties.index'))
+    return redirect(url_for('assets.index', tab='properties'))

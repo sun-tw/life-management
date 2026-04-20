@@ -59,7 +59,7 @@ def add():
             db.session.add(policy)
             db.session.commit()
             flash('保單已新增', 'success')
-            return redirect(url_for('insurance.index'))
+            return redirect(url_for('assets.index', tab='insurance'))
         except Exception as e:
             db.session.rollback()
             flash(f'新增失敗：{str(e)}', 'error')
@@ -94,7 +94,7 @@ def edit(id):
             policy.notes = request.form.get('notes', '').strip()
             db.session.commit()
             flash('保單已更新', 'success')
-            return redirect(url_for('insurance.index'))
+            return redirect(url_for('assets.index', tab='insurance'))
         except Exception as e:
             db.session.rollback()
             flash(f'更新失敗：{str(e)}', 'error')
@@ -119,7 +119,7 @@ def delete(id):
     except Exception as e:
         db.session.rollback()
         flash(f'刪除失敗：{str(e)}', 'error')
-    return redirect(url_for('insurance.index'))
+    return redirect(url_for('assets.index', tab='insurance'))
 
 
 def _parse_date(value):

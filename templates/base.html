@@ -198,19 +198,9 @@
          class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'investments' in request.endpoint else '' }}">
         <span class="w-4 text-center opacity-70">△</span> 投資管理
       </a>
-
-      <div class="sidebar-section px-3 pt-4 pb-1">資產</div>
-      <a href="{{ url_for('vehicles.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'vehicles' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◁</span> 車輛
-      </a>
-      <a href="{{ url_for('properties.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'properties' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◻</span> 房產
-      </a>
-      <a href="{{ url_for('insurance.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'insurance' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◇</span> 保險
+      <a href="{{ url_for('assets.index') }}"
+         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'assets' in request.endpoint or request.endpoint in ['vehicles.index','vehicles.add','vehicles.edit','properties.index','properties.add','properties.edit','insurance.index','insurance.add','insurance.edit'] else '' }}">
+        <span class="w-4 text-center opacity-70">◫</span> 資產管理
       </a>
 
       <div class="sidebar-section px-3 pt-4 pb-1">生活</div>

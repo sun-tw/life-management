@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% block title %}資產管理{% endblock %}
+{% block page_title %}資產管理{% endblock %}
+
+{% block content %}
+
+{# ── Flash 訊息 ───────────────────────────────────────────────────── #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium flash-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── 頂部摘要統計 ─────────────────────────────────────────────────── #}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">🚗 車輛</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ vehicles|length }} 輛</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">
+      {% set loans_v = vehicles|selectattr('loan')|list %}
+      {{ loans_v|length }} 輛有貸款
+    </div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">🏠 房產</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ properties|length }} 筆</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">
+      {% set total_val = properties|map(attribute='estimated_value')|select('number')|sum %}
+      {% if total_val > 0 %}估值 {{ total_val|money }}{% else %}尚未設定估值{% endif %}
+    </div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">🛡 保險</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ total_policies }} 張</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">
+      年繳 {{ total_annual|money }}
+      {% if expiring_soon %} · <span class="text-orange-500">{{ expiring_soon|length }} 張即將到期</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── 分頁選單 ─────────────────────────────────────────────────────── #}
+<div class="flex items-center justify-between mb-5">
+  <div class="flex gap-1 p-1 rounded-xl" style="background:#EEECEA;">
+    {% for t, label, icon in [('vehicles','車輛','🚗'), ('properties','房產','🏠'), ('insurance','保險','🛡')] %}
+    <a href="{{ url_for('assets.index', tab=t) }}"
+       class="px-5 py-2 rounded-lg text-sm font-medium transition"
+       style="{{ 'background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(0,0,0,0.08);' if tab==t else 'color:var(--text-muted);' }}">
+      {{ icon }} {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {# 每個分頁的「新增」按鈕 #}
+  {% if tab == 'vehicles' %}
+  <a href="{{ url_for('vehicles.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+     style="background:#2C2C2A;">+ 新增車輛</a>
+  {% elif tab == 'properties' %}
+  <a href="{{ url_for('properties.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+     style="background:#2C2C2A;">+ 新增房產</a>
+  {% elif tab == 'insurance' %}
+  <a href="{{ url_for('insurance.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+     style="background:#2C2C2A;">+ 新增保單</a>
+  {% endif %}
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# TAB：車輛 #}
+{# ═══════════════════════════════════════════════════════════════════ #}
+{% if tab == 'vehicles' %}
+
+{% if vehicles %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+  {% for v in vehicles %}
+  <div class="card p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+             style="background:#F5F4EF;">
+          {{ '🚗' if v.vehicle_type == '汽車' else '🛵' if v.vehicle_type == '機車' else '⚡' }}
+        </div>
+        <div>
+          <div class="font-semibold" style="color:var(--text-primary);">{{ v.name }}</div>
+          <div class="text-xs mt-0.5" style="color:var(--text-muted);">
+            {{ v.brand }} {{ v.model }}{% if v.year %} · {{ v.year }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-1">
+        <a href="{{ url_for('vehicles.edit', vid=v.id) }}"
+           class="p-1.5 rounded-lg transition text-xs hover:opacity-70"
+           style="color:var(--text-muted);">✏️</a>
+        <form method="POST" action="{{ url_for('vehicles.delete', vid=v.id) }}"
+              onsubmit="return confirm('確定刪除「{{ v.name }}」？')">
+          <button type="submit"
+                  class="p-1.5 rounded-lg transition text-xs hover:text-red-400"
+                  style="color:var(--text-muted);">🗑️</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">車主</span>
+        <span class="font-medium" style="color:var(--text-primary);">{{ v.owner_name }}</span>
+      </div>
+      {% if v.plate_number %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">車牌</span>
+        <span class="font-medium" style="color:var(--text-primary);">{{ v.plate_number }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">貸款</span>
+        {% if v.loan %}
+        <span class="text-orange-500 font-medium">{{ v.loan.current_balance|money }} 待還</span>
+        {% else %}
+        <span class="font-medium" style="color:#7A9E7E;">✓ 無貸款</span>
+        {% endif %}
+      </div>
+      {% if v.insurance_due %}
+      {% set ins_days = (v.insurance_due - today).days %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">強制險到期</span>
+        <span class="font-medium {{ 'text-red-500' if ins_days <= 30 else 'text-orange-400' if ins_days <= 90 else '' }}"
+              style="{{ '' if ins_days <= 90 else 'color:var(--text-primary);' }}">
+          {{ v.insurance_due|date_fmt }}
+          {% if ins_days <= 90 %}<span class="text-xs">({{ ins_days }}天)</span>{% endif %}
+        </span>
+      </div>
+      {% endif %}
+      {% if v.maintenance_due %}
+      {% set mnt_days = (v.maintenance_due - today).days %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">保養提醒</span>
+        <span class="font-medium {{ 'text-orange-500' if mnt_days <= 30 else '' }}"
+              style="{{ '' if mnt_days <= 30 else 'color:var(--text-primary);' }}">
+          {{ v.maintenance_due|date_fmt }}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+    {% if v.notes %}
+    <div class="mt-3 pt-3 text-xs border-t" style="border-color:var(--border); color:var(--text-muted);">
+      {{ v.notes }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">🚗</div>
+  <p class="text-sm" style="color:var(--text-muted);">還沒有車輛記錄</p>
+  <a href="{{ url_for('vehicles.add') }}"
+     class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增車輛</a>
+</div>
+{% endif %}
+
+
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# TAB：房產 #}
+{# ═══════════════════════════════════════════════════════════════════ #}
+{% elif tab == 'properties' %}
+
+{% if properties %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+  {% for p in properties %}
+  <div class="card p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+             style="background:#F5F4EF;">
+          {% if p.property_type == '住宅' %}🏠
+          {% elif p.property_type == '門市' %}🏪
+          {% else %}🏢{% endif %}
+        </div>
+        <div>
+          <div class="font-semibold" style="color:var(--text-primary);">{{ p.name }}</div>
+          <div class="text-xs mt-0.5" style="color:var(--text-muted);">{{ p.property_type }} · {{ p.owner_name }}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium
+          {% if p.status == '持有中' %}bg-emerald-100 text-emerald-700
+          {% elif p.status in ['已售出','交屋中'] %}bg-orange-100 text-orange-700
+          {% else %}bg-blue-100 text-blue-700{% endif %}">
+          {{ p.status }}
+        </span>
+        <a href="{{ url_for('properties.edit', pid=p.id) }}"
+           class="text-xs hover:opacity-70 transition" style="color:var(--text-muted);">✏️</a>
+        <form method="POST" action="{{ url_for('properties.delete', pid=p.id) }}"
+              onsubmit="return confirm('確定刪除「{{ p.name }}」？')">
+          <button type="submit" class="text-xs hover:text-red-400 transition"
+                  style="color:var(--text-muted);">🗑️</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-2 text-sm">
+      {% if p.address %}
+      <div class="flex justify-between gap-4">
+        <span style="color:var(--text-muted); flex-shrink:0;">地址</span>
+        <span class="text-right" style="color:var(--text-primary);">{{ p.address }}</span>
+      </div>
+      {% endif %}
+      {% if p.estimated_value %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">估值</span>
+        <span class="font-semibold" style="color:var(--text-primary);">{{ p.estimated_value|money }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">相關貸款</span>
+        {% if p.loan %}
+        <span class="text-orange-500 font-medium">{{ p.loan.name }} · {{ p.loan.current_balance|money }}</span>
+        {% else %}
+        <span class="font-medium" style="color:#7A9E7E;">✓ 無貸款</span>
+        {% endif %}
+      </div>
+      {% if p.purchase_date %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">購入日期</span>
+        <span style="color:var(--text-primary);">{{ p.purchase_date|date_fmt }}</span>
+      </div>
+      {% endif %}
+      {% if p.sale_date %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">售出日期</span>
+        <span style="color:var(--text-primary);">{{ p.sale_date|date_fmt }}</span>
+      </div>
+      {% endif %}
+      {% if p.handover_date %}
+      <div class="flex justify-between">
+        <span style="color:var(--text-muted);">交屋日期</span>
+        <span class="font-semibold text-orange-500">{{ p.handover_date|date_fmt }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if p.notes %}
+    <div class="mt-3 pt-3 text-xs border-t" style="border-color:var(--border); color:var(--text-muted);">
+      {{ p.notes }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">🏠</div>
+  <p class="text-sm" style="color:var(--text-muted);">還沒有房產記錄</p>
+  <a href="{{ url_for('properties.add') }}"
+     class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增房產</a>
+</div>
+{% endif %}
+
+
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# TAB：保險 #}
+{# ═══════════════════════════════════════════════════════════════════ #}
+{% elif tab == 'insurance' %}
+
+{# 到期警示 #}
+{% if expiring_soon %}
+<div class="mb-5 px-4 py-3 rounded-xl border flex items-start gap-3"
+     style="background:#FFF8F0; border-color:#F5C97A;">
+  <span class="text-orange-400 text-base mt-0.5">⚠</span>
+  <div>
+    <div class="text-sm font-medium text-orange-700 mb-1.5">到期提醒</div>
+    <div class="flex flex-wrap gap-2">
+      {% for p in expiring_soon %}
+      {% set days = p.days_until_expiry() %}
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-medium
+        {{ 'bg-red-100 text-red-700' if days <= 30 else 'bg-orange-100 text-orange-700' }}">
+        {{ p.name }}{% if days is not none %}（{{ days }}天）{% else %}（已到期）{% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# 保險統計小列 #}
+<div class="grid grid-cols-3 gap-3 mb-5">
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold" style="color:var(--text-primary);">{{ total_policies }}</div>
+    <div class="text-xs mt-0.5" style="color:var(--text-muted);">保單總數</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ total_annual|money }}</div>
+    <div class="text-xs mt-0.5" style="color:var(--text-muted);">年繳保費</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold {{ 'text-orange-500' if expiring_soon else '' }}"
+         style="{{ '' if expiring_soon else 'color:var(--text-primary);' }}">
+      {{ expiring_soon|length }}
+    </div>
+    <div class="text-xs mt-0.5" style="color:var(--text-muted);">90天內到期</div>
+  </div>
+</div>
+
+{# 按險種分組表格 #}
+{% for ins_type in insurance_types %}
+{% if grouped[ins_type] %}
+<div class="card p-5 mb-4">
+  <h3 class="font-semibold text-sm mb-3 flex items-center gap-2" style="color:var(--text-primary);">
+    <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:#9B9B95;"></span>
+    {{ ins_type }}
+    <span class="text-xs font-normal" style="color:var(--text-muted);">{{ grouped[ins_type]|length }} 張</span>
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs border-b" style="color:var(--text-muted); border-color:var(--border);">
+          <th class="pb-2 pr-4 text-left font-medium">保單名稱</th>
+          <th class="pb-2 pr-4 text-left font-medium">保險公司</th>
+          <th class="pb-2 pr-4 text-left font-medium">被保人</th>
+          <th class="pb-2 pr-4 text-left font-medium">到期日</th>
+          <th class="pb-2 pr-4 text-right font-medium">年繳保費</th>
+          <th class="pb-2 text-center font-medium">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in grouped[ins_type] %}
+        {% set days = p.days_until_expiry() %}
+        <tr class="border-b last:border-0 hover:bg-slate-50 transition"
+            style="border-color:var(--border);">
+          <td class="py-2.5 pr-4 font-medium" style="color:var(--text-primary);">
+            {{ p.name }}
+            {% if days is not none and days <= 30 %}<span class="ml-1">🔴</span>
+            {% elif days is not none and days <= 90 %}<span class="ml-1">🟡</span>{% endif %}
+          </td>
+          <td class="py-2.5 pr-4" style="color:var(--text-secondary);">{{ p.insurer or '—' }}</td>
+          <td class="py-2.5 pr-4" style="color:var(--text-secondary);">{{ p.insured_name or '—' }}</td>
+          <td class="py-2.5 pr-4">
+            {% if p.end_date %}
+            <span class="{{ 'text-red-600 font-semibold' if days is not none and days <= 30
+                        else 'text-orange-500' if days is not none and days <= 90
+                        else '' }}"
+                  style="{{ '' if (days is not none and days <= 90) else 'color:var(--text-secondary);' }}">
+              {{ p.end_date|date_fmt }}
+              {% if days is not none %}
+              <span class="text-xs ml-1 opacity-60">
+                {% if days <= 0 %}（已到期）{% else %}（{{ days }}天）{% endif %}
+              </span>
+              {% endif %}
+            </span>
+            {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+          </td>
+          <td class="py-2.5 pr-4 text-right font-semibold" style="color:var(--text-primary);">
+            {{ p.annual_premium()|money }}
+          </td>
+          <td class="py-2.5 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <a href="{{ url_for('insurance.edit', id=p.id) }}"
+                 class="text-xs px-2 py-1 rounded hover:opacity-70 transition"
+                 style="color:var(--text-muted);">編輯</a>
+              <form method="POST" action="{{ url_for('insurance.delete', id=p.id) }}"
+                    onsubmit="return confirm('確定要刪除「{{ p.name }}」？')">
+                <button type="submit"
+                        class="text-xs px-2 py-1 rounded hover:text-red-400 transition"
+                        style="color:var(--text-muted);">刪除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if not policies %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">🛡</div>
+  <p class="text-sm" style="color:var(--text-muted);">還沒有保單記錄</p>
+  <a href="{{ url_for('insurance.add') }}"
+     class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增保單</a>
+</div>
+{% endif %}
+
+{% endif %}{# end tab #}
+
+{% endblock %}

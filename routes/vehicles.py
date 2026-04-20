@@ -33,7 +33,7 @@ def add():
         db.session.add(v)
         db.session.commit()
         flash(f'車輛「{v.name}」已新增', 'success')
-        return redirect(url_for('vehicles.index'))
+        return redirect(url_for('assets.index', tab='vehicles'))
     return render_template('vehicles/form.html', vehicle=None, loans=loans, action='新增')
 
 @vehicles_bp.route('/edit/<int:vid>', methods=['GET', 'POST'])
@@ -55,7 +55,7 @@ def edit(vid):
         v.notes = request.form.get('notes', '')
         db.session.commit()
         flash(f'車輛「{v.name}」已更新', 'success')
-        return redirect(url_for('vehicles.index'))
+        return redirect(url_for('assets.index', tab='vehicles'))
     return render_template('vehicles/form.html', vehicle=v, loans=loans, action='編輯')
 
 @vehicles_bp.route('/delete/<int:vid>', methods=['POST'])
@@ -66,4 +66,4 @@ def delete(vid):
     db.session.delete(v)
     db.session.commit()
     flash(f'車輛「{name}」已刪除', 'success')
-    return redirect(url_for('vehicles.index'))
+    return redirect(url_for('assets.index', tab='vehicles'))
