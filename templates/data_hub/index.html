@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% block title %}資料{% endblock %}
+{% block page_title %}資料{% endblock %}
+
+{% block content %}
+{% set cat_icons = {'醫療':'🏥','法律':'⚖️','財務':'💰','保險':'🛡️','緊急':'🆘','家人':'👨‍👩‍👧','朋友':'👥','其他':'📋'} %}
+
+{# Flash #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium flash-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── 頂部摘要 ─────────────────────────────────────────────────────── #}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">📄 重要文件</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ docs|length }} 份</div>
+    <div class="text-xs mt-1 {{ 'text-orange-500' if expiring else '' }}" style="{{ '' if expiring else 'color:var(--text-muted);' }}">
+      {% if expiring %}{{ expiring|length }} 份即將到期{% else %}無即將到期{% endif %}
+    </div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">⭐ 重要聯絡人</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ important_contacts|length }} 位</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">置頂顯示</div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">📋 聯絡人總計</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ (important_contacts|length) + (grouped_contacts.values()|sum(start=[])|length) }} 位</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">{{ grouped_contacts|length }} 個類別</div>
+  </div>
+</div>
+
+{# ── 分頁選單 ─────────────────────────────────────────────────────── #}
+<div class="flex items-center justify-between mb-5">
+  <div class="flex gap-1 p-1 rounded-xl" style="background:#EEECEA;">
+    {% for t, label, icon in [('documents','重要文件','📄'), ('contacts','聯絡人','👥')] %}
+    <a href="{{ url_for('data_hub.index', tab=t) }}"
+       class="px-5 py-2 rounded-lg text-sm font-medium transition"
+       style="{{ 'background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(0,0,0,0.08);' if tab==t else 'color:var(--text-muted);' }}">
+      {{ icon }} {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if tab == 'documents' %}
+  <a href="{{ url_for('documents.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增文件</a>
+  {% elif tab == 'contacts' %}
+  <a href="{{ url_for('contacts.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增聯絡人</a>
+  {% endif %}
+</div>
+
+
+{# ═════════════════════════ TAB：重要文件 ══════════════════════════════ #}
+{% if tab == 'documents' %}
+
+{# 到期警示 #}
+{% if expiring %}
+<div class="mb-5 px-4 py-3 rounded-xl border flex items-start gap-3"
+     style="background:#FFF8F0; border-color:#F5C97A;">
+  <span class="text-orange-400 text-base mt-0.5">⚠</span>
+  <div>
+    <div class="text-sm font-medium text-orange-700 mb-2">以下文件將在 90 天內到期</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      {% for d in expiring %}
+      {% set days = d.days_until_expiry() %}
+      <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border
+                  {{ 'border-red-200' if days is not none and days <= 30 else 'border-orange-200' }}">
+        <div>
+          <p class="text-xs font-semibold" style="color:var(--text-primary);">{{ d.name }}</p>
+          <p class="text-xs" style="color:var(--text-muted);">{{ d.doc_type }}</p>
+        </div>
+        <p class="text-xs font-semibold {{ 'text-red-600' if days is not none and days <= 30 else 'text-orange-600' }}">
+          {% if days is none or days <= 0 %}已到期{% else %}{{ days }}天{% endif %}
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# 重要文件 #}
+{% if important_docs %}
+<div class="card p-5 mb-4">
+  <h3 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color:var(--text-primary);">
+    <span class="text-yellow-400">★</span> 重要文件
+    <span class="text-xs font-normal" style="color:var(--text-muted);">{{ important_docs|length }} 份</span>
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs border-b" style="color:var(--text-muted); border-color:var(--border);">
+          <th class="pb-2 pr-4 text-left font-medium">文件名稱</th>
+          <th class="pb-2 pr-4 text-left font-medium">類型</th>
+          <th class="pb-2 pr-4 text-left font-medium">持有人</th>
+          <th class="pb-2 pr-4 text-left font-medium">到期日</th>
+          <th class="pb-2 text-center font-medium">操作</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y" style="divide-color:var(--border);">
+        {% for d in important_docs %}
+        {% set days = d.days_until_expiry() %}
+        <tr class="hover:bg-slate-50 transition" style="border-color:var(--border);">
+          <td class="py-2.5 pr-4 font-medium" style="color:var(--text-primary);">
+            {{ d.name }}
+            {% if days is not none and days <= 30 %}<span class="ml-1">🔴</span>
+            {% elif days is not none and days <= 90 %}<span class="ml-1">🟡</span>{% endif %}
+          </td>
+          <td class="py-2.5 pr-4" style="color:var(--text-secondary);">{{ d.doc_type }}</td>
+          <td class="py-2.5 pr-4" style="color:var(--text-secondary);">{{ d.owner_name or '—' }}</td>
+          <td class="py-2.5 pr-4">
+            {% if d.expiry_date %}
+            <span class="{{ 'text-red-600 font-semibold' if days is not none and days <= 30 else 'text-orange-500' if days is not none and days <= 90 else '' }}"
+                  style="{{ '' if (days is not none and days <= 90) else 'color:var(--text-secondary);' }}">
+              {{ d.expiry_date|date_fmt }}
+            </span>
+            {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+          </td>
+          <td class="py-2.5 text-center">
+            <div class="flex justify-center gap-2">
+              <a href="{{ url_for('documents.edit', id=d.id) }}"
+                 class="text-xs hover:opacity-70" style="color:var(--text-muted);">編輯</a>
+              <form method="POST" action="{{ url_for('documents.delete', id=d.id) }}"
+                    onsubmit="return confirm('確定刪除？')">
+                <button class="text-xs hover:text-red-400" style="color:var(--text-muted);">刪除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# 按類型分組 #}
+{% for doc_type, items in grouped_docs.items() %}
+<div class="card p-5 mb-4">
+  <h3 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color:var(--text-primary);">
+    <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:#9B9B95;"></span>
+    {{ doc_type }}
+    <span class="text-xs font-normal" style="color:var(--text-muted);">{{ items|length }} 份</span>
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <tbody class="divide-y" style="divide-color:var(--border);">
+        {% for d in items %}
+        {% set days = d.days_until_expiry() %}
+        <tr class="hover:bg-slate-50 transition" style="border-color:var(--border);">
+          <td class="py-2 pr-4 font-medium" style="color:var(--text-primary);">{{ d.name }}</td>
+          <td class="py-2 pr-4" style="color:var(--text-secondary);">{{ d.owner_name or '—' }}</td>
+          <td class="py-2 pr-4">
+            {% if d.expiry_date %}
+            <span class="{{ 'text-red-600 font-semibold' if days is not none and days <= 30 else 'text-orange-500' if days is not none and days <= 90 else '' }}"
+                  style="{{ '' if (days is not none and days <= 90) else 'color:var(--text-secondary);' }}">
+              {{ d.expiry_date|date_fmt }}
+              {% if days is not none and days <= 90 %}
+              <span class="text-xs ml-1 opacity-60">({{ days }}天)</span>
+              {% endif %}
+            </span>
+            {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+          </td>
+          <td class="py-2 text-right">
+            <div class="flex justify-end gap-2">
+              <a href="{{ url_for('documents.edit', id=d.id) }}"
+                 class="text-xs hover:opacity-70" style="color:var(--text-muted);">編輯</a>
+              <form method="POST" action="{{ url_for('documents.delete', id=d.id) }}"
+                    onsubmit="return confirm('確定刪除？')">
+                <button class="text-xs hover:text-red-400" style="color:var(--text-muted);">刪除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+{% if not docs %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">📄</div>
+  <p class="text-sm" style="color:var(--text-muted);">還沒有文件記錄</p>
+  <a href="{{ url_for('documents.add') }}"
+     class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增文件</a>
+</div>
+{% endif %}
+
+
+{# ═════════════════════════ TAB：聯絡人 ═══════════════════════════════ #}
+{% elif tab == 'contacts' %}
+
+{# 重要聯絡人 #}
+{% if important_contacts %}
+<div class="mb-6">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="text-base">⭐</span>
+    <span class="text-sm font-semibold text-amber-700">重要聯絡人</span>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for c in important_contacts %}
+    <div class="card p-4 border-l-4 border-amber-300">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <div class="flex items-center gap-1.5 mb-0.5">
+            <span>{{ cat_icons.get(c.category,'📋') }}</span>
+            <span class="font-semibold text-sm" style="color:var(--text-primary);">{{ c.name }}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{{ c.category }}</span>
+          </div>
+          {% if c.relationship or c.institution %}
+          <p class="text-xs ml-5" style="color:var(--text-muted);">
+            {{ c.relationship }}{% if c.relationship and c.institution %} · {% endif %}{{ c.institution }}
+          </p>
+          {% endif %}
+        </div>
+        <div class="flex gap-1 flex-shrink-0">
+          <a href="{{ url_for('contacts.edit', id=c.id) }}" class="text-xs hover:opacity-70" style="color:var(--text-muted);">✏️</a>
+          <form method="POST" action="{{ url_for('contacts.delete', id=c.id) }}"
+                onsubmit="return confirm('確定刪除？')">
+            <button class="text-xs hover:text-red-400" style="color:var(--text-muted);">🗑️</button>
+          </form>
+        </div>
+      </div>
+      <div class="space-y-1 ml-5">
+        {% if c.phone %}
+        <a href="tel:{{ c.phone }}" class="flex items-center gap-1.5 text-xs text-indigo-500 hover:text-indigo-700">
+          📞 {{ c.phone }}
+        </a>
+        {% endif %}
+        {% if c.email %}
+        <a href="mailto:{{ c.email }}" class="flex items-center gap-1.5 text-xs" style="color:var(--text-muted);">
+          ✉️ {{ c.email }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# 按類別分組 #}
+{% for cat, items in grouped_contacts.items() %}
+<div class="card p-5 mb-4">
+  <h3 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color:var(--text-primary);">
+    <span>{{ cat_icons.get(cat,'📋') }}</span> {{ cat }}
+    <span class="text-xs font-normal" style="color:var(--text-muted);">{{ items|length }} 位</span>
+  </h3>
+  <div class="space-y-2">
+    {% for c in items %}
+    <div class="flex items-center justify-between py-1.5 border-b last:border-0" style="border-color:var(--border);">
+      <div>
+        <span class="text-sm font-medium" style="color:var(--text-primary);">{{ c.name }}</span>
+        {% if c.relationship %}<span class="text-xs ml-1" style="color:var(--text-muted);">{{ c.relationship }}</span>{% endif %}
+        {% if c.phone %}<span class="text-xs ml-2 text-indigo-500">{{ c.phone }}</span>{% endif %}
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <a href="{{ url_for('contacts.edit', id=c.id) }}" class="text-xs hover:opacity-70" style="color:var(--text-muted);">✏️</a>
+        <form method="POST" action="{{ url_for('contacts.delete', id=c.id) }}"
+              onsubmit="return confirm('確定刪除？')">
+          <button class="text-xs hover:text-red-400" style="color:var(--text-muted);">🗑️</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+{% if not important_contacts and not grouped_contacts %}
+<div class="card p-16 text-center">
+  <div class="text-4xl mb-3">👥</div>
+  <p class="text-sm" style="color:var(--text-muted);">還沒有聯絡人</p>
+  <a href="{{ url_for('contacts.add') }}"
+     class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增聯絡人</a>
+</div>
+{% endif %}
+
+{% endif %}{# end tab #}
+
+{% endblock %}

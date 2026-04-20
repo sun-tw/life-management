@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% block title %}生活{% endblock %}
+{% block page_title %}生活{% endblock %}
+
+{% block content %}
+{% set cat_icons = {'財務':'💰','健康':'💪','學習':'📚','家庭':'👨‍👩‍👧','旅遊':'✈️','事業':'💼','其他':'⭐'} %}
+{% set cat_colors = {'財務':'bg-yellow-100 text-yellow-800','健康':'bg-green-100 text-green-800','學習':'bg-blue-100 text-blue-800','家庭':'bg-pink-100 text-pink-800','旅遊':'bg-sky-100 text-sky-800','事業':'bg-purple-100 text-purple-800','其他':'bg-slate-100 text-slate-700'} %}
+
+{# Flash #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium flash-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── 頂部摘要 ─────────────────────────────────────────────────────── #}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">🎯 人生目標</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ total_goals }} 個</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">進行中</div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">✈️ 旅遊計劃</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ total_trips }} 個</div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">
+      {% if upcoming %}{{ upcoming[0].trip_name }}{% else %}尚無計劃{% endif %}
+    </div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">💊 健康記錄</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">
+      {% if latest_health and latest_health.weight %}{{ latest_health.weight }} kg{% else %}—{% endif %}
+    </div>
+    <div class="text-xs mt-1" style="color:var(--text-muted);">
+      {% if last_health_date %}最近 {{ last_health_date|date_fmt }}{% else %}尚無記錄{% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── 分頁選單 ─────────────────────────────────────────────────────── #}
+<div class="flex items-center justify-between mb-5">
+  <div class="flex gap-1 p-1 rounded-xl" style="background:#EEECEA;">
+    {% for t, label, icon in [('goals','人生目標','🎯'), ('travel','旅遊計劃','✈️'), ('health','健康記錄','💊')] %}
+    <a href="{{ url_for('life_hub.index', tab=t) }}"
+       class="px-5 py-2 rounded-lg text-sm font-medium transition"
+       style="{{ 'background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(0,0,0,0.08);' if tab==t else 'color:var(--text-muted);' }}">
+      {{ icon }} {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if tab == 'goals' %}
+  <a href="{{ url_for('goals.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增目標</a>
+  {% elif tab == 'travel' %}
+  <a href="{{ url_for('travel.add') }}"
+     class="px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增旅遊</a>
+  {% endif %}
+</div>
+
+
+{# ═══════════════════════════════ TAB：人生目標 ════════════════════════ #}
+{% if tab == 'goals' %}
+
+<div class="mb-6">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="w-2 h-2 rounded-full" style="background:#2C2C2A;"></span>
+    <span class="text-sm font-semibold" style="color:var(--text-primary);">進行中（{{ active_goals|length }}）</span>
+  </div>
+  {% if active_goals %}
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for goal in active_goals %}
+    <div class="card p-5 hover:shadow-md transition-shadow">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex flex-wrap gap-1.5">
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ cat_colors.get(goal.category,'bg-slate-100 text-slate-700') }}">
+            {{ cat_icons.get(goal.category,'⭐') }} {{ goal.category }}
+          </span>
+          <span class="text-xs px-2 py-0.5 rounded-full" style="background:#F5F4EF; color:var(--text-muted);">
+            {{ goal.timeframe }}
+          </span>
+        </div>
+        {% if goal.status == '暫停' %}
+        <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 flex-shrink-0">暫停</span>
+        {% endif %}
+      </div>
+      <h4 class="font-semibold text-sm mb-3 leading-snug" style="color:var(--text-primary);">{{ goal.title }}</h4>
+      <div class="mb-3">
+        <div class="flex justify-between text-xs mb-1" style="color:var(--text-muted);">
+          <span>進度</span>
+          <span class="font-semibold" style="color:var(--text-primary);">{{ goal.progress }}%</span>
+        </div>
+        <div class="w-full rounded-full h-1.5" style="background:#EEECEA;">
+          <div class="h-1.5 rounded-full" style="width:{{ goal.progress }}%; background:#2C2C2A;"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between text-xs" style="color:var(--text-muted);">
+        <span>✅ {{ goal.milestones|selectattr('is_completed')|list|length }}/{{ goal.milestones|length }} 里程碑</span>
+        {% if goal.target_date %}<span>🎯 {{ goal.target_date|date_fmt }}</span>{% endif %}
+      </div>
+      <a href="{{ url_for('goals.detail', id=goal.id) }}"
+         class="mt-3 block w-full text-center py-1.5 rounded-lg text-xs font-medium transition"
+         style="background:#F5F4EF; color:var(--text-secondary);">查看詳情 →</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card p-10 text-center" style="color:var(--text-muted);">
+    <div class="text-4xl mb-3">🎯</div>
+    <p class="text-sm">尚無進行中的目標</p>
+    <a href="{{ url_for('goals.add') }}"
+       class="mt-4 inline-block px-4 py-2 rounded-xl text-white text-sm hover:opacity-90"
+       style="background:#2C2C2A;">立即新增</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if completed_goals %}
+<div>
+  <div class="flex items-center gap-2 mb-3">
+    <span class="w-2 h-2 rounded-full" style="background:#9B9B95;"></span>
+    <span class="text-sm font-semibold" style="color:var(--text-muted);">已完成 / 放棄（{{ completed_goals|length }}）</span>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for goal in completed_goals %}
+    <div class="card p-4" style="opacity:0.75;">
+      <div class="flex items-center justify-between mb-2">
+        <span class="px-2 py-0.5 rounded-full text-xs {{ cat_colors.get(goal.category,'bg-slate-100 text-slate-700') }}">
+          {{ cat_icons.get(goal.category,'⭐') }} {{ goal.category }}
+        </span>
+        <span class="text-xs px-2 py-0.5 rounded-full
+          {{ 'bg-green-100 text-green-700' if goal.status == '已完成' else 'bg-red-100 text-red-600' }}">
+          {{ goal.status }}
+        </span>
+      </div>
+      <p class="text-sm font-medium mb-2" style="color:var(--text-secondary);">{{ goal.title }}</p>
+      <div class="w-full rounded-full h-1" style="background:#EEECEA;">
+        <div class="h-1 rounded-full" style="width:{{ goal.progress }}%; background:#9B9B95;"></div>
+      </div>
+      <a href="{{ url_for('goals.detail', id=goal.id) }}"
+         class="mt-2 block w-full text-center py-1 rounded-lg text-xs transition"
+         style="background:#F5F4EF; color:var(--text-muted);">查看詳情</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+{# ═══════════════════════════════ TAB：旅遊計劃 ═══════════════════════ #}
+{% elif tab == 'travel' %}
+
+{% if upcoming %}
+<h3 class="font-semibold text-sm mb-3 flex items-center gap-2" style="color:var(--text-primary);">
+  <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:#2C2C2A;"></span>
+  即將到來（{{ upcoming|length }}）
+</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+  {% for t in upcoming %}
+  <a href="{{ url_for('travel.detail', plan_id=t.id) }}" class="card p-5 block hover:shadow-md transition group">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <div class="font-semibold text-sm group-hover:underline" style="color:var(--text-primary);">{{ t.trip_name }}</div>
+        <div class="text-xs mt-0.5" style="color:var(--text-muted);">{{ t.destination }}</div>
+      </div>
+      <span class="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0
+        {{ 'bg-blue-100 text-blue-700' if t.status == '計劃中' else 'bg-emerald-100 text-emerald-700' }}">
+        {{ t.status }}
+      </span>
+    </div>
+    {% if t.start_date %}
+    <div class="text-xs mb-2 text-indigo-500">
+      📅 {{ t.start_date|date_fmt }}{% if t.end_date %} → {{ t.end_date|date_fmt }}{% endif %}
+    </div>
+    {% endif %}
+    <div class="flex justify-between text-sm">
+      <span style="color:var(--text-muted);">預算</span>
+      <span class="font-medium" style="color:var(--text-primary);">{{ t.total_planned()|money }}</span>
+    </div>
+    {% if t.items %}
+    <div class="mt-2 pt-2 border-t flex flex-wrap gap-1" style="border-color:var(--border);">
+      {% for cat in t.items|map(attribute='category')|unique|list %}
+      <span class="text-xs px-1.5 py-0.5 rounded-full" style="background:#F5F4EF; color:var(--text-muted);">{{ cat }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if completed_trips %}
+<h3 class="font-semibold text-sm mb-3 flex items-center gap-2" style="color:var(--text-muted);">
+  <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:#9B9B95;"></span>
+  已完成（{{ completed_trips|length }}）
+</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for t in completed_trips %}
+  <a href="{{ url_for('travel.detail', plan_id=t.id) }}"
+     class="card p-4 block hover:shadow-md transition" style="opacity:0.7;">
+    <div class="font-medium text-sm" style="color:var(--text-secondary);">{{ t.trip_name }}</div>
+    <div class="text-xs mt-0.5" style="color:var(--text-muted);">{{ t.destination }}</div>
+    {% if t.start_date %}
+    <div class="text-xs mt-1" style="color:var(--text-muted);">{{ t.start_date|date_fmt }}</div>
+    {% endif %}
+    <div class="text-xs mt-1" style="color:var(--text-muted);">實際 {{ t.total_actual()|money }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not upcoming and not completed_trips %}
+<div class="card p-16 text-center">
+  <div class="text-5xl mb-4">✈️</div>
+  <h3 class="font-semibold mb-2" style="color:var(--text-primary);">還沒有旅遊計劃</h3>
+  <p class="text-sm mb-5" style="color:var(--text-muted);">規劃你的下一趟旅程</p>
+  <a href="{{ url_for('travel.add') }}"
+     class="px-5 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+     style="background:#2C2C2A;">+ 新增旅遊計劃</a>
+</div>
+{% endif %}
+
+
+{# ═══════════════════════════════ TAB：健康記錄 ═══════════════════════ #}
+{% elif tab == 'health' %}
+
+{# 成員切換 #}
+{% if all_users|length > 1 %}
+<div class="flex gap-2 mb-5">
+  {% for u in all_users %}
+  <a href="{{ url_for('life_hub.index', tab='health', user_id=u.id) }}"
+     class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+     style="{{ 'background:#2C2C2A; color:#fff;' if view_user.id == u.id else 'background:#EEECEA; color:var(--text-secondary);' }}">
+    {{ u.display_name }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  {# 左側：最新 + 歷史 #}
+  <div class="xl:col-span-2 space-y-4">
+    {% if latest_health %}
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-sm font-semibold" style="color:var(--text-primary);">最新記錄</span>
+        <span class="text-xs" style="color:var(--text-muted);">{{ latest_health.record_date|date_fmt }}</span>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+        {% for icon, label, val, unit in [
+          ('⚖️','體重', latest_health.weight, 'kg'),
+          ('❤️','血壓', (latest_health.blood_pressure_sys|string + '/' + latest_health.blood_pressure_dia|string) if latest_health.blood_pressure_sys else None, 'mmHg'),
+          ('💓','心率', latest_health.heart_rate, 'bpm'),
+          ('🩸','血糖', latest_health.blood_sugar, 'mmol/L'),
+        ] %}
+        <div class="rounded-xl p-3 text-center" style="background:#F9F8F4;">
+          <div class="text-2xl mb-1">{{ icon }}</div>
+          <div class="font-bold text-lg" style="color:var(--text-primary);">{{ val if val else '—' }}</div>
+          <div class="text-xs" style="color:var(--text-muted);">{{ unit }}</div>
+          <div class="text-xs mt-0.5" style="color:var(--text-muted);">{{ label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# 歷史表格 #}
+    <div class="card p-5">
+      <h3 class="text-sm font-semibold mb-3" style="color:var(--text-primary);">歷史記錄（最近 20 筆）</h3>
+      {% if health_records %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs border-b" style="color:var(--text-muted); border-color:var(--border);">
+              <th class="pb-2 pr-3 text-left font-medium">日期</th>
+              <th class="pb-2 pr-3 text-right font-medium">體重 kg</th>
+              <th class="pb-2 pr-3 text-right font-medium">血壓</th>
+              <th class="pb-2 pr-3 text-right font-medium">心率</th>
+              <th class="pb-2 pr-3 text-right font-medium">血糖</th>
+              <th class="pb-2 text-center font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" style="divide-color:var(--border);">
+            {% for rec in health_records %}
+            <tr class="hover:bg-slate-50 transition" style="border-color:var(--border);">
+              <td class="py-2 pr-3 font-medium" style="color:var(--text-primary);">{{ rec.record_date|date_fmt }}</td>
+              <td class="py-2 pr-3 text-right" style="color:var(--text-secondary);">{{ rec.weight or '—' }}</td>
+              <td class="py-2 pr-3 text-right" style="color:var(--text-secondary);">
+                {% if rec.blood_pressure_sys %}{{ rec.blood_pressure_sys }}/{{ rec.blood_pressure_dia }}{% else %}—{% endif %}
+              </td>
+              <td class="py-2 pr-3 text-right" style="color:var(--text-secondary);">{{ rec.heart_rate or '—' }}</td>
+              <td class="py-2 pr-3 text-right" style="color:var(--text-secondary);">{{ rec.blood_sugar or '—' }}</td>
+              <td class="py-2 text-center">
+                <form method="POST" action="{{ url_for('health.delete', id=rec.id) }}"
+                      onsubmit="return confirm('確定刪除？')">
+                  <input type="hidden" name="user_id" value="{{ view_user.id }}">
+                  <button class="text-xs hover:text-red-400 transition" style="color:var(--text-muted);">刪除</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-center py-8 text-sm" style="color:var(--text-muted);">尚無健康記錄</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# 右側：快速新增 #}
+  <div>
+    <div class="card p-5 sticky top-24">
+      <h3 class="text-sm font-semibold mb-4" style="color:var(--text-primary);">快速新增記錄</h3>
+      <form method="POST" action="{{ url_for('health.add') }}" class="space-y-3">
+        <input type="hidden" name="user_id" value="{{ view_user.id }}">
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">記錄日期 *</label>
+          <input type="date" name="record_date" required value="{{ today.isoformat() }}"
+                 class="w-full px-3 py-2 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">體重（kg）</label>
+          <input type="number" name="weight" step="0.1" placeholder="72.5"
+                 class="w-full px-3 py-2 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">血壓（收縮壓 / 舒張壓）</label>
+          <div class="flex gap-2">
+            <input type="number" name="blood_pressure_sys" placeholder="120" class="w-full px-3 py-2 rounded-lg text-sm">
+            <span class="flex items-center text-xs" style="color:var(--text-muted);">/</span>
+            <input type="number" name="blood_pressure_dia" placeholder="80" class="w-full px-3 py-2 rounded-lg text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">心率（bpm）</label>
+          <input type="number" name="heart_rate" placeholder="72" class="w-full px-3 py-2 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">血糖（mmol/L）</label>
+          <input type="number" name="blood_sugar" step="0.1" placeholder="5.6" class="w-full px-3 py-2 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">備註</label>
+          <textarea name="notes" rows="2" placeholder="今日身體狀況..."
+                    class="w-full px-3 py-2 rounded-lg text-sm resize-none"></textarea>
+        </div>
+        <button type="submit"
+                class="w-full py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 transition"
+                style="background:#2C2C2A;">+ 新增記錄</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

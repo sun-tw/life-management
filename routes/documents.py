@@ -59,7 +59,7 @@ def add():
             db.session.add(doc)
             db.session.commit()
             flash('文件已新增', 'success')
-            return redirect(url_for('documents.index'))
+            return redirect(url_for('data_hub.index', tab='documents'))
         except Exception as e:
             db.session.rollback()
             flash(f'新增失敗：{str(e)}', 'error')
@@ -84,7 +84,7 @@ def edit(id):
             doc.is_important = bool(request.form.get('is_important'))
             db.session.commit()
             flash('文件已更新', 'success')
-            return redirect(url_for('documents.index'))
+            return redirect(url_for('data_hub.index', tab='documents'))
         except Exception as e:
             db.session.rollback()
             flash(f'更新失敗：{str(e)}', 'error')
@@ -103,7 +103,7 @@ def delete(id):
     except Exception as e:
         db.session.rollback()
         flash(f'刪除失敗：{str(e)}', 'error')
-    return redirect(url_for('documents.index'))
+    return redirect(url_for('data_hub.index', tab='documents'))
 
 
 def _parse_date(value):

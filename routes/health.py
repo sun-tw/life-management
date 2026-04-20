@@ -47,7 +47,7 @@ def add():
     db.session.add(record)
     db.session.commit()
     flash('健康記錄已新增！', 'success')
-    return redirect(url_for('health.index', user_id=target_user_id))
+    return redirect(url_for('life_hub.index', tab='health'))
 
 
 @health_bp.route('/delete/<int:id>', methods=['POST'])
@@ -58,4 +58,4 @@ def delete(id):
     db.session.delete(record)
     db.session.commit()
     flash('記錄已刪除。', 'success')
-    return redirect(url_for('health.index', user_id=user_id))
+    return redirect(url_for('life_hub.index', tab='health'))

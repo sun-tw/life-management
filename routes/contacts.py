@@ -42,7 +42,7 @@ def add():
         db.session.add(contact)
         db.session.commit()
         flash('聯絡人已新增！', 'success')
-        return redirect(url_for('contacts.index'))
+        return redirect(url_for('data_hub.index', tab='contacts'))
     return render_template('contacts/form.html',
         contact=None,
         categories=CATEGORIES,
@@ -66,7 +66,7 @@ def edit(id):
         contact.notes = request.form.get('notes', '')
         db.session.commit()
         flash('聯絡人已更新！', 'success')
-        return redirect(url_for('contacts.index'))
+        return redirect(url_for('data_hub.index', tab='contacts'))
     return render_template('contacts/form.html',
         contact=contact,
         categories=CATEGORIES,
@@ -81,4 +81,4 @@ def delete(id):
     db.session.delete(contact)
     db.session.commit()
     flash('聯絡人已刪除。', 'success')
-    return redirect(url_for('contacts.index'))
+    return redirect(url_for('data_hub.index', tab='contacts'))

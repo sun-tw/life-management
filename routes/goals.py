@@ -39,7 +39,7 @@ def add():
         db.session.add(goal)
         db.session.commit()
         flash('目標已新增！', 'success')
-        return redirect(url_for('goals.index'))
+        return redirect(url_for('life_hub.index', tab='goals'))
     return render_template('goals/form.html',
         goal=None,
         categories=CATEGORIES,
@@ -93,7 +93,7 @@ def delete(id):
     db.session.delete(goal)
     db.session.commit()
     flash('目標已刪除。', 'success')
-    return redirect(url_for('goals.index'))
+    return redirect(url_for('life_hub.index', tab='goals'))
 
 
 @goals_bp.route('/milestone/add/<int:goal_id>', methods=['POST'])

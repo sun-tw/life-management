@@ -199,36 +199,24 @@
         <span class="w-4 text-center opacity-70">△</span> 投資管理
       </a>
       <a href="{{ url_for('assets.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'assets' in request.endpoint or request.endpoint in ['vehicles.index','vehicles.add','vehicles.edit','properties.index','properties.add','properties.edit','insurance.index','insurance.add','insurance.edit'] else '' }}">
+         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'assets' in request.endpoint or request.endpoint in ['vehicles.add','vehicles.edit','properties.add','properties.edit','insurance.add','insurance.edit'] else '' }}">
         <span class="w-4 text-center opacity-70">◫</span> 資產管理
       </a>
 
       <div class="sidebar-section px-3 pt-4 pb-1">生活</div>
-      <a href="{{ url_for('goals.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'goals' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◎</span> 人生目標
-      </a>
-      <a href="{{ url_for('travel.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'travel' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">→</span> 旅遊
-      </a>
-      <a href="{{ url_for('health.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'health' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">♡</span> 健康記錄
+      <a href="{{ url_for('life_hub.index') }}"
+         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'life_hub' in request.endpoint or request.endpoint in ['goals.add','goals.edit','goals.detail','travel.add','travel.edit','travel.detail','health.add'] else '' }}">
+        <span class="w-4 text-center opacity-70">◎</span> 生活
       </a>
 
       <div class="sidebar-section px-3 pt-4 pb-1">資料</div>
-      <a href="{{ url_for('documents.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'documents' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◁</span> 重要文件
-      </a>
-      <a href="{{ url_for('contacts.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'contacts' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">○</span> 聯絡人
+      <a href="{{ url_for('data_hub.index') }}"
+         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'data_hub' in request.endpoint or request.endpoint in ['documents.add','documents.edit','contacts.add','contacts.edit'] else '' }}">
+        <span class="w-4 text-center opacity-70">◁</span> 資料管理
       </a>
       <a href="{{ url_for('settings.index') }}"
          class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'settings' in request.endpoint else '' }}">
-        <span class="w-4 text-center opacity-70">◫</span> 設定
+        <span class="w-4 text-center opacity-70">⊙</span> 設定
       </a>
     </nav>
 
