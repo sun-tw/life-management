@@ -22,6 +22,9 @@ from routes.timeline import timeline_bp
 from routes.assets import assets_bp
 from routes.life_hub import life_hub_bp
 from routes.data_hub import data_hub_bp
+from routes.exercise import exercise_bp
+from routes.medical import medical_bp
+from routes.countries import countries_bp
 
 def create_app():
     app = Flask(__name__)
@@ -44,7 +47,8 @@ def create_app():
                properties_bp, travel_bp, settings_bp, transactions_bp,
                insurance_bp, documents_bp, goals_bp, investments_bp,
                health_bp, contacts_bp, networth_bp, timeline_bp,
-               assets_bp, life_hub_bp, data_hub_bp]:
+               assets_bp, life_hub_bp, data_hub_bp,
+               exercise_bp, medical_bp, countries_bp]:
         app.register_blueprint(bp)
 
     # Context processor

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block page_title %}人生目標{% endblock %}
+{% block page_title %}{{ page_label }}{% endblock %}
 
 {% block content %}
 {% set cat_icons = {
@@ -20,8 +20,17 @@
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h2 class="text-2xl font-bold text-slate-800">人生目標</h2>
-      <p class="text-slate-500 text-sm mt-1">追蹤您的重要人生目標與里程碑</p>
+      <h2 class="text-2xl font-bold text-slate-800">{{ page_label }}</h2>
+      <div class="flex gap-2 mt-2">
+        {% for cat, label in [('','所有'),('財務','財務目標'),('健康','健康目標'),('旅遊','環遊世界')] %}
+        <a href="{{ url_for('goals.index', category=cat) }}"
+           class="px-3 py-1 rounded-full text-xs font-medium transition
+             {{ '' if current_category == cat else 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}"
+           style="{{ 'background:#2C2C2A; color:#fff;' if current_category == cat else '' }}">
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
     </div>
     <a href="{{ url_for('goals.add') }}"
        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium shadow-sm hover:opacity-90 transition"

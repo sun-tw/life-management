@@ -204,10 +204,88 @@
       </a>
 
       <div class="sidebar-section px-3 pt-4 pb-1">生活</div>
-      <a href="{{ url_for('life_hub.index') }}"
-         class="sidebar-link flex items-center gap-2.5 px-3 py-2 {{ 'active' if 'life_hub' in request.endpoint or request.endpoint in ['goals.add','goals.edit','goals.detail','travel.add','travel.edit','travel.detail','health.add'] else '' }}">
-        <span class="w-4 text-center opacity-70">◎</span> 生活
-      </a>
+
+      {# ── 健康管理 accordion ─────────────────────────────── #}
+      {% set health_active = request.endpoint and request.endpoint.split('.')[0] in ['health','exercise','medical'] %}
+      <div x-data="{ open: {{ 'true' if health_active else 'false' }} }">
+        <button @click="open = !open"
+                class="sidebar-link w-full flex items-center justify-between px-3 py-2 {{ 'active' if health_active else '' }}">
+          <span class="flex items-center gap-2.5">
+            <span class="w-4 text-center opacity-70">♡</span> 健康管理
+          </span>
+          <span class="text-xs opacity-40 transition-transform" :class="open ? 'rotate-90' : ''">▸</span>
+        </button>
+        <div x-show="open" x-cloak class="pl-4 space-y-0.5 mt-0.5">
+          <a href="{{ url_for('health.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('health.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 健康紀錄
+          </a>
+          <a href="{{ url_for('exercise.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('exercise.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 運動管理
+          </a>
+          <a href="{{ url_for('medical.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('medical.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 就診記錄
+          </a>
+        </div>
+      </div>
+
+      {# ── 旅遊管理 accordion ─────────────────────────────── #}
+      {% set travel_active = request.endpoint and request.endpoint.split('.')[0] in ['travel','countries','vehicles'] %}
+      <div x-data="{ open: {{ 'true' if travel_active else 'false' }} }">
+        <button @click="open = !open"
+                class="sidebar-link w-full flex items-center justify-between px-3 py-2 {{ 'active' if travel_active else '' }}">
+          <span class="flex items-center gap-2.5">
+            <span class="w-4 text-center opacity-70">→</span> 旅遊管理
+          </span>
+          <span class="text-xs opacity-40 transition-transform" :class="open ? 'rotate-90' : ''">▸</span>
+        </button>
+        <div x-show="open" x-cloak class="pl-4 space-y-0.5 mt-0.5">
+          <a href="{{ url_for('countries.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('countries.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 尚未去過的國家
+          </a>
+          <a href="{{ url_for('travel.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('travel.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 旅遊紀錄
+          </a>
+          <a href="{{ url_for('vehicles.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if request.endpoint and request.endpoint.startswith('vehicles.') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 交通工具
+          </a>
+        </div>
+      </div>
+
+      {# ── 人生目標 accordion ─────────────────────────────── #}
+      {% set goals_active = request.endpoint and request.endpoint.split('.')[0] == 'goals' %}
+      <div x-data="{ open: {{ 'true' if goals_active else 'false' }} }">
+        <button @click="open = !open"
+                class="sidebar-link w-full flex items-center justify-between px-3 py-2 {{ 'active' if goals_active else '' }}">
+          <span class="flex items-center gap-2.5">
+            <span class="w-4 text-center opacity-70">◎</span> 人生目標
+          </span>
+          <span class="text-xs opacity-40 transition-transform" :class="open ? 'rotate-90' : ''">▸</span>
+        </button>
+        <div x-show="open" x-cloak class="pl-4 space-y-0.5 mt-0.5">
+          <a href="{{ url_for('goals.index', category='財務') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if goals_active and request.args.get('category') == '財務' else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 財務目標
+          </a>
+          <a href="{{ url_for('goals.index', category='健康') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if goals_active and request.args.get('category') == '健康' else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 健康目標
+          </a>
+          <a href="{{ url_for('goals.index', category='旅遊') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if goals_active and request.args.get('category') == '旅遊' else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 環遊世界
+          </a>
+          <a href="{{ url_for('goals.index') }}"
+             class="sidebar-link flex items-center gap-2 px-3 py-1.5 text-xs {{ 'active' if goals_active and not request.args.get('category') else '' }}">
+            <span class="w-3 text-center opacity-50">·</span> 所有目標
+          </a>
+        </div>
+      </div>
 
       <div class="sidebar-section px-3 pt-4 pb-1">資料</div>
       <a href="{{ url_for('data_hub.index') }}"

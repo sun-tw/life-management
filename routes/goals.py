@@ -13,12 +13,28 @@ STATUSES = ['進行中', '已完成', '暫停', '放棄']
 @goals_bp.route('/')
 @login_required
 def index():
-    active = Goal.query.filter(Goal.status.in_(['進行中', '暫停'])).order_by(Goal.created_at.desc()).all()
-    completed = Goal.query.filter(Goal.status.in_(['已完成', '放棄'])).order_by(Goal.created_at.desc()).all()
+    category = request.args.get('category', '')  # 財務 / 健康 / 旅遊 / '' = 全部
+
+    active_q = Goal.query.filter(Goal.status.in_(['進行中', '暫停']))
+    done_q   = Goal.query.filter(Goal.status.in_(['已完成', '放棄']))
+
+    if category:
+        active_q = active_q.filter(Goal.category == category)
+        done_q   = done_q.filter(Goal.category == category)
+
+    active    = active_q.order_by(Goal.created_at.desc()).all()
+    completed = done_q.order_by(Goal.created_at.desc()).all()
+
+    # 標題對應
+    label_map = {'財務': '財務目標', '健康': '健康目標', '旅遊': '環遊世界'}
+    page_label = label_map.get(category, '人生目標')
+
     return render_template('goals/index.html',
         active_goals=active,
         completed_goals=completed,
-        categories=CATEGORIES
+        categories=CATEGORIES,
+        current_category=category,
+        page_label=page_label
     )
 
 

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}運動管理{% endblock %}
+{% block page_title %}運動管理{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium {{ 'bg-green-100 text-green-800' if cat == 'success' else 'bg-red-100 text-red-800' }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── 成員切換 ──────────────────────────────────────────── #}
+{% if all_users|length > 1 %}
+<div class="flex gap-2 mb-5">
+  {% for u in all_users %}
+  <a href="{{ url_for('exercise.index', user_id=u.id) }}"
+     class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+     style="{{ 'background:#2C2C2A; color:#fff;' if view_user.id == u.id else 'background:#EEECEA; color:var(--text-secondary);' }}">
+    {{ u.display_name }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── 統計摘要 ─────────────────────────────────────────── #}
+<div class="grid grid-cols-4 gap-4 mb-6">
+  {% for icon, label, val, unit in [
+    ('🏃', '運動次數', total_sessions, '次'),
+    ('⏱', '總時長', total_minutes, '分鐘'),
+    ('📍', '總距離', total_km, 'km'),
+    ('🔥', '總消耗', total_calories, 'kcal'),
+  ] %}
+  <div class="stat-card p-4 text-center">
+    <div class="text-2xl mb-1">{{ icon }}</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ val }}</div>
+    <div class="text-xs" style="color:var(--text-muted);">{{ label }} · {{ unit }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── 類型分佈 ────────────────────────────────────────── #}
+{% if type_stats %}
+<div class="flex flex-wrap gap-2 mb-6">
+  {% for t, cnt in type_stats.items()|sort(attribute='1', reverse=true) %}
+  <span class="px-3 py-1 rounded-full text-sm" style="background:#F5F4EF; color:var(--text-secondary);">
+    {{ t }} <strong>{{ cnt }}</strong>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  {# ── 記錄列表 ──────────────────────────────────────── #}
+  <div class="xl:col-span-2">
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-xs border-b" style="background:#F9F8F4; color:var(--text-muted); border-color:var(--border);">
+            <th class="px-4 py-3 text-left font-medium">日期</th>
+            <th class="px-4 py-3 text-left font-medium">類型</th>
+            <th class="px-4 py-3 text-right font-medium">時長</th>
+            <th class="px-4 py-3 text-right font-medium">距離</th>
+            <th class="px-4 py-3 text-right font-medium">消耗</th>
+            <th class="px-4 py-3 text-left font-medium">備註</th>
+            <th class="px-4 py-3 text-center font-medium">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" style="divide-color:var(--border);">
+          {% for r in records %}
+          <tr class="hover:bg-slate-50 transition" style="border-color:var(--border);">
+            <td class="px-4 py-2.5 font-medium" style="color:var(--text-primary);">{{ r.exercise_date|date_fmt }}</td>
+            <td class="px-4 py-2.5">
+              <span class="px-2 py-0.5 rounded-full text-xs" style="background:#EEECEA; color:var(--text-secondary);">{{ r.exercise_type }}</span>
+            </td>
+            <td class="px-4 py-2.5 text-right" style="color:var(--text-secondary);">{{ r.duration_minutes or '—' }}{% if r.duration_minutes %} 分{% endif %}</td>
+            <td class="px-4 py-2.5 text-right" style="color:var(--text-secondary);">{{ r.distance_km or '—' }}{% if r.distance_km %} km{% endif %}</td>
+            <td class="px-4 py-2.5 text-right" style="color:var(--text-secondary);">{{ r.calories or '—' }}{% if r.calories %} kcal{% endif %}</td>
+            <td class="px-4 py-2.5 text-xs max-w-xs truncate" style="color:var(--text-muted);">{{ r.notes or '—' }}</td>
+            <td class="px-4 py-2.5 text-center">
+              <form method="POST" action="{{ url_for('exercise.delete', id=r.id) }}"
+                    onsubmit="return confirm('確定刪除？')">
+                <button class="text-xs hover:text-red-400 transition" style="color:var(--text-muted);">刪除</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-4 py-12 text-center text-sm" style="color:var(--text-muted);">
+              <div class="text-3xl mb-2">🏃</div>尚無運動記錄
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ── 快速新增 ──────────────────────────────────────── #}
+  <div>
+    <div class="card p-5 sticky top-24">
+      <h3 class="text-sm font-semibold mb-4" style="color:var(--text-primary);">記錄今日運動</h3>
+      <form method="POST" action="{{ url_for('exercise.add') }}" class="space-y-3">
+        <input type="hidden" name="user_id" value="{{ view_user.id }}">
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">日期 *</label>
+          <input type="date" name="exercise_date" required value="{{ today.isoformat() }}"
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">運動類型 *</label>
+          <select name="exercise_type" required
+                  class="w-full px-3 py-2 rounded-lg text-sm border bg-white" style="border-color:var(--border);">
+            {% for t in exercise_types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">時長（分鐘）</label>
+            <input type="number" name="duration_minutes" placeholder="30"
+                   class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">距離（km）</label>
+            <input type="number" name="distance_km" step="0.1" placeholder="5.0"
+                   class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">消耗熱量（kcal）</label>
+          <input type="number" name="calories" placeholder="300"
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">備註</label>
+          <textarea name="notes" rows="2" placeholder="今日感受..."
+                    class="w-full px-3 py-2 rounded-lg text-sm border resize-none" style="border-color:var(--border);"></textarea>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+                style="background:#2C2C2A;">+ 新增記錄</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

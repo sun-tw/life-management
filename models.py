@@ -364,3 +364,63 @@ class Contact(db.Model):
     is_important = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ─────────────────────────────────────────────
+# 運動管理
+# ─────────────────────────────────────────────
+class ExerciseRecord(db.Model):
+    __tablename__ = 'exercise_records'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    exercise_date = db.Column(db.Date, nullable=False, default=date.today)
+    exercise_type = db.Column(db.String(50), nullable=False)  # 跑步/健走/游泳/重訓/瑜珈/自行車/球類/其他
+    duration_minutes = db.Column(db.Integer, nullable=True)
+    distance_km = db.Column(db.Float, nullable=True)
+    calories = db.Column(db.Integer, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='exercise_records')
+
+
+# ─────────────────────────────────────────────
+# 就診記錄
+# ─────────────────────────────────────────────
+class MedicalVisit(db.Model):
+    __tablename__ = 'medical_visits'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    visit_date = db.Column(db.Date, nullable=False, default=date.today)
+    hospital = db.Column(db.String(100), nullable=False)
+    department = db.Column(db.String(100), nullable=True)   # 科別
+    doctor = db.Column(db.String(100), nullable=True)
+    reason = db.Column(db.String(200), nullable=True)       # 就診原因
+    diagnosis = db.Column(db.Text, nullable=True)           # 診斷結果
+    medication = db.Column(db.Text, nullable=True)          # 用藥
+    next_visit_date = db.Column(db.Date, nullable=True)     # 回診日
+    cost = db.Column(db.Float, nullable=True)               # 費用
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='medical_visits')
+
+    def days_until_next_visit(self):
+        if self.next_visit_date:
+            return (self.next_visit_date - date.today()).days
+        return None
+
+
+# ─────────────────────────────────────────────
+# 國家清單（環遊世界）
+# ─────────────────────────────────────────────
+class Country(db.Model):
+    __tablename__ = 'countries'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    name_en = db.Column(db.String(100), nullable=True)
+    continent = db.Column(db.String(50), nullable=True)  # 亞洲/歐洲/美洲/非洲/大洋洲
+    visited = db.Column(db.Boolean, default=False)
+    want_to_visit = db.Column(db.Boolean, default=True)
+    visited_year = db.Column(db.Integer, nullable=True)
+    flag_emoji = db.Column(db.String(10), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

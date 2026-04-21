@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}就診記錄{% endblock %}
+{% block page_title %}就診記錄{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium {{ 'bg-green-100 text-green-800' if cat == 'success' else 'bg-red-100 text-red-800' }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# ── 成員切換 #}
+{% if all_users|length > 1 %}
+<div class="flex gap-2 mb-5">
+  {% for u in all_users %}
+  <a href="{{ url_for('medical.index', user_id=u.id) }}"
+     class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+     style="{{ 'background:#2C2C2A; color:#fff;' if view_user.id == u.id else 'background:#EEECEA; color:var(--text-secondary);' }}">
+    {{ u.display_name }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ── 即將回診提醒 #}
+{% if upcoming %}
+<div class="mb-5 px-4 py-3 rounded-xl border flex items-start gap-3"
+     style="background:#FFF8F0; border-color:#F5C97A;">
+  <span class="text-orange-400 text-base mt-0.5">📅</span>
+  <div>
+    <div class="text-sm font-medium text-orange-700 mb-2">即將回診（60天內）</div>
+    <div class="space-y-1">
+      {% for r in upcoming %}
+      <div class="flex items-center gap-3 text-sm">
+        <span class="font-semibold {{ 'text-red-600' if r.days_until_next_visit() <= 7 else 'text-orange-600' }}">
+          {{ r.next_visit_date|date_fmt }}
+        </span>
+        <span style="color:var(--text-secondary);">{{ r.hospital }}</span>
+        <span style="color:var(--text-muted);">{{ r.department or '' }}</span>
+        {% if r.days_until_next_visit() is not none %}
+        <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-red-100 text-red-600' if r.days_until_next_visit() <= 7 else 'bg-orange-100 text-orange-600' }}">
+          {{ r.days_until_next_visit() }} 天後
+        </span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── 統計 #}
+<div class="grid grid-cols-2 gap-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">🏥 就診次數</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ records|length }} 次</div>
+  </div>
+  <div class="stat-card p-4">
+    <div class="text-xs uppercase tracking-wide mb-1" style="color:var(--text-muted);">💰 總費用</div>
+    <div class="text-xl font-bold" style="color:var(--text-primary);">{{ total_cost|money }}</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  {# ── 記錄列表 #}
+  <div class="xl:col-span-2 space-y-3">
+    {% for r in records %}
+    <div class="card p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold text-sm" style="color:var(--text-primary);">{{ r.hospital }}</span>
+            {% if r.department %}
+            <span class="text-xs px-2 py-0.5 rounded-full" style="background:#EEECEA; color:var(--text-secondary);">{{ r.department }}</span>
+            {% endif %}
+            {% if r.doctor %}
+            <span class="text-xs" style="color:var(--text-muted);">{{ r.doctor }} 醫師</span>
+            {% endif %}
+          </div>
+          <div class="text-xs mt-1" style="color:var(--text-muted);">{{ r.visit_date|date_fmt }}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if r.cost %}<span class="text-xs font-medium" style="color:var(--text-secondary);">{{ r.cost|money }}</span>{% endif %}
+          <form method="POST" action="{{ url_for('medical.delete', id=r.id) }}"
+                onsubmit="return confirm('確定刪除？')">
+            <button class="text-xs hover:text-red-400" style="color:var(--text-muted);">刪除</button>
+          </form>
+        </div>
+      </div>
+      {% if r.reason %}
+      <div class="text-xs mb-1" style="color:var(--text-muted);">就診原因：<span style="color:var(--text-secondary);">{{ r.reason }}</span></div>
+      {% endif %}
+      {% if r.diagnosis %}
+      <div class="text-xs mb-1 p-2 rounded-lg" style="background:#F9F8F4; color:var(--text-secondary);">🔍 {{ r.diagnosis }}</div>
+      {% endif %}
+      {% if r.medication %}
+      <div class="text-xs mb-1" style="color:var(--text-muted);">💊 用藥：<span style="color:var(--text-secondary);">{{ r.medication }}</span></div>
+      {% endif %}
+      {% if r.next_visit_date %}
+      {% set days = r.days_until_next_visit() %}
+      <div class="text-xs mt-2 flex items-center gap-1">
+        <span style="color:var(--text-muted);">回診：</span>
+        <span class="{{ 'text-red-500 font-medium' if days is not none and days <= 7 else 'text-orange-500' if days is not none and days <= 30 else '' }}"
+              style="{{ '' if (days is not none and days <= 30) else 'color:var(--text-secondary);' }}">
+          {{ r.next_visit_date|date_fmt }}
+          {% if days is not none %}（{{ days }} 天後）{% endif %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card p-12 text-center" style="color:var(--text-muted);">
+      <div class="text-3xl mb-2">🏥</div><p class="text-sm">尚無就診記錄</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── 快速新增 #}
+  <div>
+    <div class="card p-5 sticky top-24">
+      <h3 class="text-sm font-semibold mb-4" style="color:var(--text-primary);">新增就診記錄</h3>
+      <form method="POST" action="{{ url_for('medical.add') }}" class="space-y-3">
+        <input type="hidden" name="user_id" value="{{ view_user.id }}">
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">就診日期 *</label>
+          <input type="date" name="visit_date" required value="{{ today.isoformat() }}"
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">醫院 / 診所 *</label>
+          <input type="text" name="hospital" required placeholder="台大醫院"
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">科別</label>
+            <select name="department"
+                    class="w-full px-3 py-2 rounded-lg text-sm border bg-white" style="border-color:var(--border);">
+              <option value="">-- 選擇 --</option>
+              {% for d in departments %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">醫師</label>
+            <input type="text" name="doctor" placeholder="張醫師"
+                   class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">就診原因</label>
+          <input type="text" name="reason" placeholder="例：定期健檢"
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">診斷結果</label>
+          <textarea name="diagnosis" rows="2" placeholder="醫師診斷..."
+                    class="w-full px-3 py-2 rounded-lg text-sm border resize-none" style="border-color:var(--border);"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">用藥</label>
+          <input type="text" name="medication" placeholder="藥物名稱..."
+                 class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">回診日</label>
+            <input type="date" name="next_visit_date"
+                   class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color:var(--text-secondary);">費用</label>
+            <input type="number" name="cost" placeholder="0"
+                   class="w-full px-3 py-2 rounded-lg text-sm border" style="border-color:var(--border);">
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90"
+                style="background:#2C2C2A;">+ 新增記錄</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
